@@ -19,15 +19,15 @@ void metronome_start(
                      uint32_t beatsPerMinute,
                      uint32_t beatsPerMeasure,
                      uint32_t numSilentBars,
-                     uint32_t numBars);
+                     uint32_t numBars,
+                     bool silenBarsEnabled
+                     );
 void metronome_stop(void);
 
 // Query current native state (safe to call from UI thread)
-uint32_t metronome_getCurrentBeatIndex(void);
-uint32_t metronome_getCurrentBarIndex(void);
-float    metronome_getBeatPhase(void);        // 0.0 .. <1.0
-double   metronome_getCurrentTimeSeconds(void);
-bool     metronome_is_running(void);
+int     metronome_get_current_bar(void);
+int     metronome_get_current_beat(void);
+float   metronome_get_current_beat_phase(void);
 
 #ifdef __cplusplus
 }
