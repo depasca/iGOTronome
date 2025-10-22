@@ -65,7 +65,8 @@ final class MetronomeViewModel: ObservableObject {
             default:
                 beatsPerMeasure = 4
         }
-        metronome_start(UInt32(bpm), UInt32(beatsPerMeasure), UInt32(numSilentBars), UInt32(numBars), silentBarsEnabled)
+//        metronome_start(UInt32(bpm), UInt32(beatsPerMeasure), UInt32(numSilentBars), UInt32(numBars), silentBarsEnabled)
+        metronome_start(UInt32(bpm), UInt32(beatsPerMeasure), UInt32(0), UInt32(numBars), false)
     }
 
     func stop() {
