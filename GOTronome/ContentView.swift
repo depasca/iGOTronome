@@ -10,21 +10,19 @@ import SwiftUI
 struct ContentView: View {
     @AppStorage("ts") var ts = "4/4"
     @AppStorage("bpm") var bpm = 100.0
-    @AppStorage("mode") var mode: String = "Basic"
+    @State var mode: MetronomeMode = .basic
     @State var isPlaying: Bool = false
-    @State var silentBars = 0.0
+    @State var silentBars = 1.0
     @State var numBars = 16.0
     @StateObject var vm = MetronomeViewModel()
+    
     private let beatsPerMeasure = 4
     
     func tapHandler() {
             debugPrint("Tapped")
             isPlaying.toggle()
             if(isPlaying){
-                vm.setShowBars(sb: mode == "Bar loop")
-                if(mode == "Bar loop"){
-                    vm.setNumBars(nb: Int(numBars))
-                }
+                vm.setMode(m: mode)
                 vm.start(ts:ts, bpm:Int(bpm), ns:Int(silentBars), nb:Int(numBars))
             }
             else{
@@ -61,13 +59,13 @@ struct ContentView: View {
                     }
                     HStack{
                         Text("Mode")
-                        Picker(selection: $mode, label: Text("Mode:")) {
-                            Text("Basic").tag("Basic")
-                            Text("Silent bars").tag("Silent bars")
-                            Text("Bar loop").tag("Bar loop")
-                        }.pickerStyle(MenuPickerStyle())
+                        Picker("Mode", selection: $mode) {
+                            ForEach(MetronomeMode.allCases) { m in
+                                Text(String(describing: m))
+                            }
+                        }.pickerStyle(.wheel)
                     }
-                    if(mode == "Bar loop") {
+                    if(mode == .barLoop) {
                         HStack{
                             Text("num bars")
                             Slider(value: $numBars, in: 1...16)
@@ -75,7 +73,7 @@ struct ContentView: View {
                         }.frame( maxWidth: .infinity, maxHeight: .infinity)
                     }
                     else{
-                        if(mode == "Silent bars") {
+                        if(mode == .silenBars) {
                             HStack{
                                 Text("num bars")
                                 Slider(value: $silentBars, in: 1...4)

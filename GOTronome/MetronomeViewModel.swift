@@ -10,6 +10,23 @@ import Combine
 import UIKit
 import AVFoundation
 
+enum MetronomeMode : CaseIterable, Identifiable, CustomStringConvertible {
+    case basic
+    case barLoop
+    case silenBars
+    var id: Self { self }
+    var description: String {
+        switch self {
+        case .basic:
+            return "Basic"
+        case .barLoop:
+            return "Bar Loop"
+        case .silenBars:
+            return "Silent Bars"
+        }
+    }
+}
+
 final class MetronomeViewModel: ObservableObject {
     @Published private(set) var currentBeat: Int = 0
     @Published private(set) var currentBar: Int = 0
@@ -17,10 +34,10 @@ final class MetronomeViewModel: ObservableObject {
     @Published private(set) var beatsPerMinute: Int = 120
     @Published private(set) var beatsPerMeasure: Int = 4
     @Published private(set) var timeSignature: String = "4/4"
-    @Published private(set) var mode: String = "Basic"
-    @Published private(set) var showBars: Bool = false
-    @Published private(set) var numBars: Int = 4
+    @Published private(set) var numBars: Int = 0
     @Published private(set) var numSilentBars: Int = 0
+    @Published private(set) var mode: MetronomeMode = .basic
+    @Published private(set) var silentBarsEnabled: Bool = false
     
     private var displayLink: CADisplayLink?
     private var isRunning = false
@@ -48,7 +65,8 @@ final class MetronomeViewModel: ObservableObject {
             default:
                 beatsPerMeasure = 4
         }
-        metronome_start(UInt32(bpm), UInt32(beatsPerMeasure), UInt32(numSilentBars), UInt32(numBars))
+//        metronome_start(UInt32(bpm), UInt32(beatsPerMeasure), UInt32(numSilentBars), UInt32(numBars), silentBarsEnabled)
+        metronome_start(UInt32(bpm), UInt32(beatsPerMeasure), UInt32(0), UInt32(numBars), false)
     }
 
     func stop() {
@@ -74,9 +92,9 @@ final class MetronomeViewModel: ObservableObject {
 
     @objc private func handleDisplayLink() {
         // Poll native C engine
-        let beat = Int(metronome_getCurrentBeatIndex())
-        let phase = Float(metronome_getBeatPhase())
-        let bar = Int(metronome_getCurrentBarIndex())
+        let beat = Int(metronome_get_current_beat())
+        let phase = Float(metronome_get_current_beat_phase())
+        let bar = Int(metronome_get_current_bar())
         // Update only on changes to minimize UI churn
         if beat != currentBeat || abs(phase - beatPhase) > 0.001 {
             currentBeat = beat
@@ -95,10 +113,11 @@ final class MetronomeViewModel: ObservableObject {
         }
     }
     
-    public func setShowBars(sb: Bool) {
-        showBars = sb
+    public func setMode(m: MetronomeMode) {
+        mode = m
+        silentBarsEnabled = mode == .silenBars
     }
-    public func setNumBars(nb: Int) {
-        numBars = nb
+    public func setSilentBarsEnabled(sb: Bool) {
+        silentBarsEnabled = sb
     }
 }
