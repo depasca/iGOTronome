@@ -38,10 +38,19 @@ struct ContentView: View {
                     .onTapGesture { tapHandler() }
             }
             else{
-                VStack {
+                VStack(alignment: .center, spacing: 12){
+                
                     Image(systemName: "globe")
                         .imageScale(.large)
                         .foregroundStyle(.tint)
+                    HStack{
+                        Text("Mode")
+                        Picker("Mode", selection: $mode) {
+                            ForEach(MetronomeMode.allCases) { m in
+                                Text(String(describing: m))
+                            }
+                        }.pickerStyle(.segmented)
+                    }
                     HStack{
                         Text("Time Signature")
                         Picker(selection: $ts, label: Text("TS:")) {
@@ -50,40 +59,33 @@ struct ContentView: View {
                             Text("2/4").tag("2/4")
                             Text("2/2").tag("2/2")
                             Text("6/8").tag("6/8")
-                        }.pickerStyle(MenuPickerStyle())
+                        }.pickerStyle(.wheel)
                     }
                     HStack{
                         Text("Beats Per Minute")
                         Slider(value: $bpm, in: 20...240)
                         Text("\(Int(bpm))")
                     }
-                    HStack{
-                        Text("Mode")
-                        Picker("Mode", selection: $mode) {
-                            ForEach(MetronomeMode.allCases) { m in
-                                Text(String(describing: m))
-                            }
-                        }.pickerStyle(.wheel)
-                    }
                     if(mode == .barLoop) {
                         HStack{
-                            Text("num bars")
-                            Slider(value: $numBars, in: 1...16)
+                            Text("Num bars")
+                            Slider(value: $numBars, in: 2...32)
                             Text("\(Int(numBars))")
-                        }.frame( maxWidth: .infinity, maxHeight: .infinity)
+                        }
                     }
                     else{
                         if(mode == .silenBars) {
                             HStack{
-                                Text("num bars")
-                                Slider(value: $silentBars, in: 1...4)
+                                Text("Num silent bars")
+                                Slider(value: $silentBars, in: 1...10)
                                 Text("\(Int(silentBars))")
-                            }.frame( maxWidth: .infinity, maxHeight: .infinity)
+                            }
                         }
                     }
-                
+                    Spacer()
                     Text("Tap anywhere to start/stop")
                 }
+                .offset(y: 60)
                 .padding()
                 .edgesIgnoringSafeArea(.all)
                 .contentShape(Rectangle())
