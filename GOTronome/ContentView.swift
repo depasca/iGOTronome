@@ -17,6 +17,7 @@ struct ContentView: View {
     @StateObject var vm = MetronomeViewModel()
     
     private let beatsPerMeasure = 4
+    private let fontColor:Color = .white
     
     func tapHandler() {
             isPlaying.toggle()
@@ -38,59 +39,66 @@ struct ContentView: View {
             }
             else{
                 VStack(alignment: .center, spacing: 12){
-                
                     Image(systemName: "globe")
                         .imageScale(.large)
                         .foregroundStyle(.tint)
                     HStack{
-                        Text("Mode")
+                        Text("Mode").foregroundColor(fontColor)
                         Picker("Mode", selection: $mode) {
                             ForEach(MetronomeMode.allCases) { m in
-                                Text(String(describing: m))
+                                Text(String(describing: m)).foregroundColor(fontColor)
                             }
                         }.pickerStyle(.segmented)
                     }
                     HStack{
-                        Text("Time Signature")
+                        Text("Time Signature").foregroundColor(fontColor)
                         Picker(selection: $ts, label: Text("TS:")) {
-                            Text("4/4").tag("4/4")
-                            Text("3/4").tag("3/4")
-                            Text("2/4").tag("2/4")
-                            Text("2/2").tag("2/2")
-                            Text("6/8").tag("6/8")
+                            Text("4/4").tag("4/4").foregroundColor(fontColor)
+                            Text("3/4").tag("3/4").foregroundColor(fontColor)
+                            Text("2/4").tag("2/4").foregroundColor(fontColor)
+                            Text("2/2").tag("2/2").foregroundColor(fontColor)
+                            Text("6/8").tag("6/8").foregroundColor(fontColor)
                         }.pickerStyle(.wheel)
                     }
                     HStack{
-                        Text("Beats Per Minute")
+                        Text("Beats Per Minute").foregroundColor(fontColor)
                         Slider(value: $bpm, in: 20...240)
-                        Text("\(Int(bpm))")
+                        Text("\(Int(bpm))").foregroundColor(fontColor)
                     }
                     if(mode == .barLoop) {
                         HStack{
-                            Text("Num bars")
+                            Text("Num bars").foregroundColor(fontColor)
                             Slider(value: $numBars, in: 2...32)
-                            Text("\(Int(numBars))")
+                            Text("\(Int(numBars))").foregroundColor(fontColor)
                         }
                     }
                     else{
                         if(mode == .silenBars) {
                             HStack{
-                                Text("Num silent bars")
+                                Text("Num silent bars").foregroundColor(fontColor)
                                 Slider(value: $silentBars, in: 1...10)
-                                Text("\(Int(silentBars))")
+                                Text("\(Int(silentBars))").foregroundColor(fontColor)
                             }
                         }
                     }
                     Spacer()
-                    Text("Tap anywhere to start/stop")
+                    Text("Tap anywhere to start/stop").foregroundColor(.white)
+                    Spacer()
                 }
                 .offset(y: 60)
                 .padding()
                 .edgesIgnoringSafeArea(.all)
                 .contentShape(Rectangle())
                 .frame(minWidth: 0, maxWidth: .infinity, minHeight: 0, maxHeight: .infinity)
-                .background(Color.blue.opacity(0.2))
                 .onTapGesture { tapHandler() }
+                .background(
+                    Image("Background")
+                        
+                        .edgesIgnoringSafeArea(.all)
+                        .frame(width: UIScreen.main.bounds.width, height: UIScreen.main.bounds.height)
+                        .background(Color.black.opacity(1.0))
+                    )
+
         }
     }
 }
