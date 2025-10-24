@@ -10,16 +10,15 @@ import SwiftUI
 struct ContentView: View {
     @AppStorage("ts") var ts = "4/4"
     @AppStorage("bpm") var bpm = 100.0
-    @State var mode: MetronomeMode = .basic
+    @AppStorage("mode") var mode: MetronomeMode = .basic
+    @AppStorage("silentBars") var silentBars = 1.0
+    @AppStorage("numBars") var numBars = 16.0
     @State var isPlaying: Bool = false
-    @State var silentBars = 1.0
-    @State var numBars = 16.0
     @StateObject var vm = MetronomeViewModel()
     
     private let beatsPerMeasure = 4
     
     func tapHandler() {
-            debugPrint("Tapped")
             isPlaying.toggle()
             if(isPlaying){
                 vm.setMode(m: mode)

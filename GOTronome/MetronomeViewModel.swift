@@ -10,7 +10,7 @@ import Combine
 import UIKit
 import AVFoundation
 
-enum MetronomeMode : CaseIterable, Identifiable, CustomStringConvertible {
+enum MetronomeMode : String, CaseIterable, Identifiable, CustomStringConvertible {
     case basic
     case barLoop
     case silenBars
