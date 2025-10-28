@@ -28,6 +28,7 @@ void metronome_stop(void);
 int     metronome_get_current_bar(void);
 int     metronome_get_current_beat(void);
 float   metronome_get_current_beat_phase(void);
+bool    metronome_get_is_silent_bar(void);
 
 #ifdef __cplusplus
 }

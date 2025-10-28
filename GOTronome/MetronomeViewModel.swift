@@ -30,6 +30,7 @@ enum MetronomeMode : String, CaseIterable, Identifiable, CustomStringConvertible
 final class MetronomeViewModel: ObservableObject {
     @Published private(set) var currentBeat: Int = 0
     @Published private(set) var currentBar: Int = 0
+    @Published private(set) var isSilentBar: Bool = false
     @Published private(set) var beatPhase: Float = 0.0
     @Published private(set) var beatsPerMinute: Int = 120
     @Published private(set) var beatsPerMeasure: Int = 4
@@ -65,8 +66,7 @@ final class MetronomeViewModel: ObservableObject {
             default:
                 beatsPerMeasure = 4
         }
-//        metronome_start(UInt32(bpm), UInt32(beatsPerMeasure), UInt32(numSilentBars), UInt32(numBars), silentBarsEnabled)
-        metronome_start(UInt32(bpm), UInt32(beatsPerMeasure), UInt32(0), UInt32(numBars), false)
+        metronome_start(UInt32(bpm), UInt32(beatsPerMeasure), UInt32(numSilentBars), UInt32(numBars), silentBarsEnabled)
     }
 
     func stop() {
@@ -95,11 +95,13 @@ final class MetronomeViewModel: ObservableObject {
         let beat = Int(metronome_get_current_beat())
         let phase = Float(metronome_get_current_beat_phase())
         let bar = Int(metronome_get_current_bar())
+        let silent = metronome_get_is_silent_bar()
         // Update only on changes to minimize UI churn
         if beat != currentBeat || abs(phase - beatPhase) > 0.001 {
             currentBeat = beat
             beatPhase = phase
             currentBar = bar
+            isSilentBar = silent
         }
     }
 

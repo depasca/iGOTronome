@@ -201,3 +201,7 @@ int metronome_get_current_beat(void) {
 float metronome_get_current_beat_phase(void){
     return gPhase;
 }
+
+bool metronome_get_is_silent_bar(void){
+    return gIsSilent;
+}

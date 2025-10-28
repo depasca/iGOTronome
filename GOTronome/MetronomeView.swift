@@ -13,7 +13,7 @@ struct MetronomeView: View {
         HStack (alignment: .center, spacing: 8){
             VStack(spacing: 4) {
                 ForEach(0..<vm.beatsPerMeasure, id: \.self) { idx in
-                    BeatRect(num: idx, isActive: idx == vm.currentBeat, phase: vm.beatPhase)
+                    BeatRect(num: idx, isActive: idx == vm.currentBeat, phase: vm.beatPhase, isSilent: vm.isSilentBar)
                 }
             }
             if(vm.mode == MetronomeMode.barLoop){
@@ -47,10 +47,11 @@ struct BeatRect: View {
     var num: Int
     var isActive: Bool
     var phase: Float
+    var isSilent: Bool = false
 
     var body: some View {
-        let scale = isActive ? (1.0 + Double(1.0 - phase) * 0.3) : 1.0
-        let color = isActive ? (num == 0 ? Color(hex: 0xFFD73F06) : Color(hex: 0xFFFD6500)) :  Color.black
+        let scale = isSilent ? 1.0 : isActive ? (1.0 + Double(1.0 - phase) * 0.3) : 1.0
+        let color = isSilent ? Color.black : isActive ? (num == 0 ? Color(hex: 0xFFD73F06) : Color(hex: 0xFFFD6500)) :  Color.black
         let borderColor = num == 0 ? Color(hex: 0xFFD73F06) : Color(hex: 0xFFFD6500)
         let fontSize: CGFloat = 96
         let fontColor: Color = .white
