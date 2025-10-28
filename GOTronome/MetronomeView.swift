@@ -10,14 +10,12 @@ struct MetronomeView: View {
     @ObservedObject var vm: MetronomeViewModel
     var containerWidth:CGFloat = UIScreen.main.bounds.width - 32
     var body: some View {
-        let beatsViewWidth:CGFloat = vm.mode == MetronomeMode.barLoop && vm.numBars > 0 ? containerWidth * 0.7 : containerWidth
         HStack (alignment: .center, spacing: 8){
             VStack(spacing: 4) {
                 ForEach(0..<vm.beatsPerMeasure, id: \.self) { idx in
                     BeatRect(num: idx, isActive: idx == vm.currentBeat, phase: vm.beatPhase)
                 }
             }
-//            .frame(width: beatsViewWidth)
             if(vm.mode == MetronomeMode.barLoop){
                 VStack(spacing: 4) {
                     ForEach(0..<vm.numBars, id: \.self) { idx in

@@ -39,6 +39,8 @@ struct ContentView: View {
             }
             else{
                 VStack(alignment: .center, spacing: 12){
+                    Spacer()
+                        .frame(height: 10)
                     Image(systemName: "globe")
                         .imageScale(.large)
                         .foregroundStyle(.tint)
@@ -49,7 +51,7 @@ struct ContentView: View {
                                 Text(String(describing: m)).foregroundColor(fontColor)
                             }
                         }.pickerStyle(.segmented)
-                    }
+                    }.padding(.top, 20)
                     HStack{
                         Text("Time Signature").foregroundColor(fontColor)
                         Picker(selection: $ts, label: Text("TS:")) {
@@ -58,19 +60,19 @@ struct ContentView: View {
                             Text("2/4").tag("2/4").foregroundColor(fontColor)
                             Text("2/2").tag("2/2").foregroundColor(fontColor)
                             Text("6/8").tag("6/8").foregroundColor(fontColor)
-                        }.pickerStyle(.wheel)
-                    }
+                        }.pickerStyle(.segmented)
+                    }.padding(.top, 20)
                     HStack{
                         Text("Beats Per Minute").foregroundColor(fontColor)
                         Slider(value: $bpm, in: 20...240)
                         Text("\(Int(bpm))").foregroundColor(fontColor)
-                    }
+                    }.padding(.top, 20)
                     if(mode == .barLoop) {
                         HStack{
                             Text("Num bars").foregroundColor(fontColor)
                             Slider(value: $numBars, in: 2...32)
                             Text("\(Int(numBars))").foregroundColor(fontColor)
-                        }
+                        }.padding(.top, 20)
                     }
                     else{
                         if(mode == .silenBars) {
@@ -78,24 +80,19 @@ struct ContentView: View {
                                 Text("Num silent bars").foregroundColor(fontColor)
                                 Slider(value: $silentBars, in: 1...10)
                                 Text("\(Int(silentBars))").foregroundColor(fontColor)
-                            }
+                            }.padding(.top, 20)
                         }
                     }
                     Spacer()
                     Text("Tap anywhere to start/stop").foregroundColor(.white)
-                    Spacer()
                 }
-                .offset(y: 60)
                 .padding()
-                .edgesIgnoringSafeArea(.all)
                 .contentShape(Rectangle())
-                .frame(minWidth: 0, maxWidth: .infinity, minHeight: 0, maxHeight: .infinity)
                 .onTapGesture { tapHandler() }
                 .background(
                     Image("Background")
-                        
-                        .edgesIgnoringSafeArea(.all)
                         .frame(width: UIScreen.main.bounds.width, height: UIScreen.main.bounds.height)
+                        .opacity(0.2)
                         .background(Color.black.opacity(1.0))
                     )
 
