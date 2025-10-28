@@ -43,6 +43,7 @@ struct ContentView: View {
                         .resizable()
                         .scaledToFit()
                         .border(Color.white, width: 2)
+                        .onTapGesture { tapHandler() }
                     HStack{
                         Text("Mode").foregroundColor(fontColor)
                         Picker("Mode", selection: $mode) {
@@ -82,12 +83,15 @@ struct ContentView: View {
                             }.padding(.top, 20)
                         }
                     }
-                    Spacer()
-                    Text("Tap anywhere to start/stop").foregroundColor(.white)
+                    VStack{
+                        Rectangle().frame(width: .infinity, height: .infinity)
+                            .foregroundColor(.clear).contentShape(Rectangle())
+                        Text("Tap anywhere to start/stop").foregroundColor(.white)
+                    }
+                    .onTapGesture { tapHandler() }
                 }
                 .padding()
                 .contentShape(Rectangle())
-                .onTapGesture { tapHandler() }
                 .background(
                     Image("Background")
                         .frame(width: UIScreen.main.bounds.width, height: UIScreen.main.bounds.height)
