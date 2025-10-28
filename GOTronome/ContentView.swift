@@ -41,9 +41,11 @@ struct ContentView: View {
                 VStack(alignment: .center, spacing: 12){
                     Spacer()
                         .frame(height: 10)
-                    Image(systemName: "globe")
-                        .imageScale(.large)
-                        .foregroundStyle(.tint)
+                    Image("Banner")
+                        .resizable()
+                        .scaledToFit()
+                        .border(Color.white, width: 2)
+//                        .foregroundStyle(.tint)
                     HStack{
                         Text("Mode").foregroundColor(fontColor)
                         Picker("Mode", selection: $mode) {
