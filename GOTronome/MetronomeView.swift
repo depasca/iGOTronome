@@ -21,7 +21,7 @@ struct MetronomeView: View {
             if(vm.mode == MetronomeMode.barLoop){
                 VStack(spacing: 4) {
                     ForEach(0..<vm.numBars, id: \.self) { idx in
-                        BeatRect(num: idx, isActive: idx == vm.currentBar, phase: vm.beatPhase, isBeat: false)
+                        BarRect(num: idx, isActive: idx == vm.currentBar, phase: vm.beatPhase)
                     }
                 }
                 .frame(width: containerWidth * 0.3)
@@ -33,19 +33,30 @@ struct MetronomeView: View {
 }
     
 
+extension Color {
+    init(hex: Int, opacity: Double = 1) {
+        self.init(
+            .sRGB,
+            red: Double((hex >> 16) & 0xff) / 255,
+            green: Double((hex >> 08) & 0xff) / 255,
+            blue: Double((hex >> 00) & 0xff) / 255,
+            opacity: opacity
+        )
+    }
+}
+
 struct BeatRect: View {
     var num: Int
     var isActive: Bool
     var phase: Float
-    var isBeat: Bool = true
 
     var body: some View {
         let scale = isActive ? (1.0 + Double(1.0 - phase) * 0.3) : 1.0
-        let color = isActive ? Color.orange : Color.black
-        let borderColor = num == 0 ? Color.red : Color.orange
-        let fontSize: CGFloat = isBeat ? 96 : 12
-        let fontColor: Color = isBeat ? .white : isActive ? .white: .orange
-        let cornerRadius: CGFloat = isBeat ? 12 : 6
+        let color = isActive ? (num == 0 ? Color(hex: 0xFFD73F06) : Color(hex: 0xFFFD6500)) :  Color.black
+        let borderColor = num == 0 ? Color(hex: 0xFFD73F06) : Color(hex: 0xFFFD6500)
+        let fontSize: CGFloat = 96
+        let fontColor: Color = .white
+        let cornerRadius: CGFloat = 12
         ZStack{
             Rectangle()
                 .foregroundColor(color)
@@ -64,4 +75,40 @@ struct BeatRect: View {
                 .foregroundColor(fontColor)
         }
     }
+}
+
+
+struct BarRect: View {
+    var num: Int
+    var isActive: Bool
+    var phase: Float
+
+    var body: some View {
+        let scale = isActive ? (1.0 + Double(1.0 - phase) * 0.3) : 1.0
+        let color = isActive ? Color(hex: 0xFFFD6500) : Color(hex: 0xFF282828)
+        let fontSize: CGFloat = 12
+        let fontColor: Color = isActive ? .white: .orange
+        let cornerRadius: CGFloat = 8
+        ZStack{
+            Rectangle()
+                .foregroundColor(color)
+                .scaleEffect(x: scale, y: scale, anchor: .center)
+                .animation(.easeOut(duration: 0.05), value: isActive)
+                .cornerRadius(cornerRadius)
+                .overlay(
+                    RoundedRectangle(cornerRadius: cornerRadius)
+                        .foregroundColor(.clear)
+                )
+                .padding(2)
+            Text("\(num + 1)")
+                .font(.system(size: fontSize))
+                .fontWeight(.bold)
+                .foregroundColor(fontColor)
+        }
+    }
+}
+
+#Preview {
+    let vm = MetronomeViewModel()
+    MetronomeView(vm: vm)
 }
