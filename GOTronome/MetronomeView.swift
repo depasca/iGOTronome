@@ -53,7 +53,7 @@ struct BeatRect: View {
         let scale = isSilent ? 1.0 : isActive ? (1.0 + Double(1.0 - phase) * 0.3) : 1.0
         let color = isSilent ? Color.black : isActive ? (num == 0 ? Color(hex: 0xFFD73F06) : Color(hex: 0xFFFD6500)) :  Color.black
         let borderColor = num == 0 ? Color(hex: 0xFFD73F06) : Color(hex: 0xFFFD6500)
-        let fontSize: CGFloat = 96
+        let fontSize: CGFloat = 72
         let fontColor: Color = .white
         let cornerRadius: CGFloat = 12
         ZStack{
