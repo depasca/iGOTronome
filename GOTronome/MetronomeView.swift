@@ -6,7 +6,57 @@
 //
 import SwiftUI
 
+struct DeviceRotationViewModifier: ViewModifier {
+    let action: (UIDeviceOrientation) -> Void
+
+    func body(content: Content) -> some View {
+        content
+//            .onAppear()
+            .onReceive(NotificationCenter.default.publisher(for: UIDevice.orientationDidChangeNotification)) { _ in
+                action(UIDevice.current.orientation)
+            }
+    }
+}
+
+extension View {
+    func onRotate(perform action: @escaping (UIDeviceOrientation) -> Void) -> some View {
+        self.modifier(DeviceRotationViewModifier(action: action))
+    }
+}
+
+
 struct MetronomeView: View {
+    @ObservedObject var vm: MetronomeViewModel
+    @State private var orientation = UIDeviceOrientation.unknown
+    var body: some View {
+        HStack{
+            if orientation.isLandscape {
+                MetronomeViewHorizontal(vm: vm)
+            } else {
+                MetronomeViewVertical(vm: vm)
+            }
+        }
+        .onRotate { newOrientation in
+            print(newOrientation.rawValue.description)
+            orientation = newOrientation
+        }
+    }
+}
+    
+
+extension Color {
+    init(hex: Int, opacity: Double = 1) {
+        self.init(
+            .sRGB,
+            red: Double((hex >> 16) & 0xff) / 255,
+            green: Double((hex >> 08) & 0xff) / 255,
+            blue: Double((hex >> 00) & 0xff) / 255,
+            opacity: opacity
+        )
+    }
+}
+
+struct MetronomeViewVertical: View {
     @ObservedObject var vm: MetronomeViewModel
     var containerWidth:CGFloat = UIScreen.main.bounds.width - 32
     var body: some View {
@@ -29,17 +79,28 @@ struct MetronomeView: View {
         .background(Color.black.opacity(1.0))
     }
 }
-    
 
-extension Color {
-    init(hex: Int, opacity: Double = 1) {
-        self.init(
-            .sRGB,
-            red: Double((hex >> 16) & 0xff) / 255,
-            green: Double((hex >> 08) & 0xff) / 255,
-            blue: Double((hex >> 00) & 0xff) / 255,
-            opacity: opacity
-        )
+struct MetronomeViewHorizontal: View {
+    @ObservedObject var vm: MetronomeViewModel
+    var containerWidth:CGFloat = UIScreen.main.bounds.width - 32
+    var body: some View {
+        VStack (alignment: .center, spacing: 8){
+            HStack(spacing: 4) {
+                ForEach(0..<vm.beatsPerMeasure, id: \.self) { idx in
+                    BeatRect(num: idx, isActive: idx == vm.currentBeat, phase: vm.beatPhase, isSilent: vm.isSilentBar)
+                }
+            }
+            if(vm.mode == MetronomeMode.barLoop){
+                HStack(spacing: 4) {
+                    ForEach(0..<vm.numBars, id: \.self) { idx in
+                        BarRect(num: idx, isActive: idx == vm.currentBar, phase: vm.beatPhase)
+                    }
+                }
+                .frame(width: containerWidth * 0.3)
+            }
+        }
+        .padding(8)
+        .background(Color.black.opacity(1.0))
     }
 }
 

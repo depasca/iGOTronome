@@ -14,6 +14,7 @@ struct ContentView: View {
     @AppStorage("silentBars") var silentBars = 1.0
     @AppStorage("numBars") var numBars = 16.0
     @State var isPlaying: Bool = false
+    @State var showAbout: Bool = false
     @StateObject var vm = MetronomeViewModel()
     
     private let beatsPerMeasure = 4
@@ -39,11 +40,20 @@ struct ContentView: View {
             }
             else{
                 VStack(alignment: .center, spacing: 12){
-                    Image("Banner")
-                        .resizable()
-                        .scaledToFit()
-                        .border(Color.white, width: 2)
-                        .onTapGesture { tapHandler() }
+                    HStack{
+                        Menu {
+                            Button("About") {
+                                showAbout = true
+                            }
+                        } label: {
+                            Label("", systemImage: "line.horizontal.3").tint(.accentColor)
+                        }
+                        Image("Banner")
+                            .resizable()
+                            .scaledToFit()
+                            .border(Color.white, width: 2)
+                            .onTapGesture { tapHandler() }
+                    }
                     HStack{
                         Text("Mode").foregroundColor(fontColor)
                         Picker("Mode", selection: $mode) {
@@ -64,13 +74,13 @@ struct ContentView: View {
                     }.padding(.top, 20)
                     HStack{
                         Text("Beats Per Minute").foregroundColor(fontColor)
-                        Slider(value: $bpm, in: 20...240).tint(Color(hex: 0xFFFD6500))
+                        Slider(value: $bpm, in: 20...240).tint(.accentColor)
                         Text("\(Int(bpm))").foregroundColor(fontColor)
                     }.padding(.top, 20)
                     if(mode == .barLoop) {
                         HStack{
                             Text("Num bars").foregroundColor(fontColor)
-                            Slider(value: $numBars, in: 2...32).tint(Color(hex: 0xFFFD6500))
+                            Slider(value: $numBars, in: 2...32).tint(.accentColor)
                             Text("\(Int(numBars))").foregroundColor(fontColor)
                         }.padding(.top, 20)
                     }
@@ -78,7 +88,7 @@ struct ContentView: View {
                         if(mode == .silenBars) {
                             HStack{
                                 Text("Num silent bars").foregroundColor(fontColor)
-                                Slider(value: $silentBars, in: 1...10).tint(Color(hex: 0xFFFD6500))
+                                Slider(value: $silentBars, in: 1...10).tint(.accentColor)
                                 Text("\(Int(silentBars))").foregroundColor(fontColor)
                             }.padding(.top, 20)
                         }
@@ -97,10 +107,13 @@ struct ContentView: View {
                         .frame(width: UIScreen.main.bounds.width, height: UIScreen.main.bounds.height)
                         .opacity(0.2)
                         .background(Color.black.opacity(1.0))
-                    )
-
+                )
+                .sheet(isPresented: $showAbout) {
+                    InfoScreen()
+                }
+                
+            }
         }
-    }
 }
 
 #Preview {
