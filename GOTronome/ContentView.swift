@@ -60,9 +60,17 @@ struct ContentView: View {
             else{
                 VStack(alignment: .center, spacing: 12){
                     MenuView(showAbout: $showAbout, tapHandler: tapHandler)
-                    SettingsBasicView(mode: $mode, ts: $ts, bpm: $bpm)
-                    SettingsAdvancedView(mode: $mode, silentBars: $silentBars, numBars: $numBars)
-                    
+                    if(orientation.isLandscape){
+                        HStack(alignment: .top){
+                            SettingsBasicView(mode: $mode, ts: $ts, bpm: $bpm)
+                            SettingsAdvancedView(mode: $mode, silentBars: $silentBars, numBars: $numBars).padding(.leading, 30).padding(.top, 40)
+                        }
+                        .contentShape(Rectangle()).onTapGesture { tapHandler() }
+                    }
+                    else{
+                        SettingsBasicView(mode: $mode, ts: $ts, bpm: $bpm)
+                        SettingsAdvancedView(mode: $mode, silentBars: $silentBars, numBars: $numBars).padding(.top, 20)
+                    }
                     VStack{
                         Rectangle().frame(width: .infinity, height: .infinity)
                             .foregroundColor(.clear).contentShape(Rectangle())
@@ -76,8 +84,8 @@ struct ContentView: View {
                     Image("Background")
                         .frame(width: UIScreen.main.bounds.width, height: UIScreen.main.bounds.height)
                         .opacity(0.2)
-                        .background(Color.black.opacity(1.0))
                 )
+                .background(Color.black.opacity(1.0))
                 .sheet(isPresented: $showAbout) {
                     InfoScreen()
                 }

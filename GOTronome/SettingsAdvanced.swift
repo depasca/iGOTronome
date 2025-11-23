@@ -21,7 +21,7 @@ struct SettingsAdvancedView: View {
                     Text("Num bars").foregroundColor(fontColor)
                     Slider(value: $numBars, in: 2...32).tint(.accentColor)
                     Text("\(Int(numBars))").foregroundColor(fontColor)
-                }.padding(.top, 20)
+                }
             }
             else{
                 if(mode == .silenBars) {
@@ -29,7 +29,7 @@ struct SettingsAdvancedView: View {
                         Text("Num silent bars").foregroundColor(fontColor)
                         Slider(value: $silentBars, in: 1...10).tint(.accentColor)
                         Text("\(Int(silentBars))").foregroundColor(fontColor)
-                    }.padding(.top, 20)
+                    }
                 }
             }
         }
