@@ -41,43 +41,45 @@ struct ContentView: View {
                     .onTapGesture { tapHandler() }
             }
             else{
-                VStack(alignment: .center, spacing: 12){
-                    MenuView(showAbout: $showAbout, tapHandler: tapHandler)
-                    if(self.isPortrait){
-                        SettingsBasicView(mode: $mode, ts: $ts, bpm: $bpm)
-                        SettingsAdvancedView(mode: $mode, silentBars: $silentBars, numBars: $numBars).padding(.top, 20)
-                    }
-                    else{
-                        HStack(alignment: .top){
+                    VStack(alignment: .center, spacing: 12){
+                        MenuView(showAbout: $showAbout, tapHandler: tapHandler)
+                        if(self.isPortrait){
                             SettingsBasicView(mode: $mode, ts: $ts, bpm: $bpm)
-                            SettingsAdvancedView(mode: $mode, silentBars: $silentBars, numBars: $numBars).padding(.leading, 30).padding(.top, 40)
+                            SettingsAdvancedView(mode: $mode, silentBars: $silentBars, numBars: $numBars).padding(.top, 20)
+                            Rectangle().frame(width: .infinity, height: .infinity)
+                                .foregroundColor(.clear).contentShape(Rectangle())
+                                .onTapGesture { tapHandler() }
                         }
-                        .contentShape(Rectangle()).onTapGesture { tapHandler() }
+                        else{
+                            HStack(alignment: .top){
+                                SettingsBasicView(mode: $mode, ts: $ts, bpm: $bpm)
+                                VStack{
+                                    SettingsAdvancedView(mode: $mode, silentBars: $silentBars, numBars: $numBars).padding(.leading, 30).padding(.top, 40)
+                                    Rectangle().frame(width: .infinity, height: .infinity)
+                                        .foregroundColor(.clear).contentShape(Rectangle())
+                                        .onTapGesture { tapHandler() }
+                                }
+                            }
+                            
+                        }
+                    Text("Tap anywhere to start/stop").foregroundColor(.white)
                     }
-                    VStack{
-                        Rectangle().frame(width: .infinity, height: .infinity)
-                            .foregroundColor(.clear).contentShape(Rectangle())
-                        Text("Tap anywhere to start/stop").foregroundColor(.white)
+                    .padding()
+                    .contentShape(Rectangle())
+                    .background(
+                        Image("Background")
+                            .frame(width: UIScreen.main.bounds.width, height: UIScreen.main.bounds.height)
+                            .opacity(0.2)
+                    )
+                    .background(Color.black.opacity(1.0))
+                    .sheet(isPresented: $showAbout) {
+                        InfoScreen()
                     }
-                    .onTapGesture { tapHandler() }
+                    .onReceive(NotificationCenter.default.publisher(for: UIDevice.orientationDidChangeNotification)) { _ in
+                        guard let scene = UIApplication.shared.windows.first?.windowScene else { return }
+                        self.isPortrait = scene.interfaceOrientation.isPortrait
+                    }
                 }
-                .padding()
-                .contentShape(Rectangle())
-                .background(
-                    Image("Background")
-                        .frame(width: UIScreen.main.bounds.width, height: UIScreen.main.bounds.height)
-                        .opacity(0.2)
-                )
-                .background(Color.black.opacity(1.0))
-                .sheet(isPresented: $showAbout) {
-                    InfoScreen()
-                }
-                .onReceive(NotificationCenter.default.publisher(for: UIDevice.orientationDidChangeNotification)) { _ in
-                    guard let scene = UIApplication.shared.windows.first?.windowScene else { return }
-                    self.isPortrait = scene.interfaceOrientation.isPortrait
-                }
-                
-            }
         }
 }
 
