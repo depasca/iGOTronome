@@ -23,12 +23,14 @@ struct MenuView: View {
                     }
                 }
                 label: {
-                    Label("", systemImage: "line.horizontal.3").tint(.white)
+                    Label("", systemImage: "line.horizontal.3").tint(.white).padding(.leading, 8)
                 }
+                Spacer()
                 Image("Banner")
                     .resizable()
                     .scaledToFit()
                     .onTapGesture { tapHandler() }
+                Spacer()
             }
         }.frame(minHeight: 50, maxHeight: 100)
             .background(.black)

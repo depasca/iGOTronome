@@ -7,24 +7,6 @@
 
 import SwiftUI
 
-struct DeviceRotationViewModifier: ViewModifier {
-    let action: (UIDeviceOrientation) -> Void
-
-    func body(content: Content) -> some View {
-        content
-            .onAppear()
-            .onReceive(NotificationCenter.default.publisher(for: UIDevice.orientationDidChangeNotification)) { _ in
-                action(UIDevice.current.orientation)
-            }
-    }
-}
-
-extension View {
-    func onRotate(perform action: @escaping (UIDeviceOrientation) -> Void) -> some View {
-        self.modifier(DeviceRotationViewModifier(action: action))
-    }
-}
-
 struct ContentView: View {
     @AppStorage("ts") var ts = "4/4"
     @AppStorage("bpm") var bpm = 100.0
@@ -35,6 +17,7 @@ struct ContentView: View {
     @State var showAbout: Bool = false
     @StateObject var vm = MetronomeViewModel()
     @State private var orientation = UIDeviceOrientation.unknown
+    @State var isPortrait: Bool = false
     
     private let beatsPerMeasure = 4
     private let fontColor:Color = .white
@@ -54,22 +37,22 @@ struct ContentView: View {
     var body: some View {
             if(isPlaying)
             {
-                MetronomeView(vm: vm)
+                MetronomeView(vm: vm, isPortrait: $isPortrait)
                     .onTapGesture { tapHandler() }
             }
             else{
                 VStack(alignment: .center, spacing: 12){
                     MenuView(showAbout: $showAbout, tapHandler: tapHandler)
-                    if(orientation.isLandscape){
+                    if(self.isPortrait){
+                        SettingsBasicView(mode: $mode, ts: $ts, bpm: $bpm)
+                        SettingsAdvancedView(mode: $mode, silentBars: $silentBars, numBars: $numBars).padding(.top, 20)
+                    }
+                    else{
                         HStack(alignment: .top){
                             SettingsBasicView(mode: $mode, ts: $ts, bpm: $bpm)
                             SettingsAdvancedView(mode: $mode, silentBars: $silentBars, numBars: $numBars).padding(.leading, 30).padding(.top, 40)
                         }
                         .contentShape(Rectangle()).onTapGesture { tapHandler() }
-                    }
-                    else{
-                        SettingsBasicView(mode: $mode, ts: $ts, bpm: $bpm)
-                        SettingsAdvancedView(mode: $mode, silentBars: $silentBars, numBars: $numBars).padding(.top, 20)
                     }
                     VStack{
                         Rectangle().frame(width: .infinity, height: .infinity)
@@ -89,9 +72,9 @@ struct ContentView: View {
                 .sheet(isPresented: $showAbout) {
                     InfoScreen()
                 }
-                .onRotate { newOrientation in
-                    print(newOrientation.rawValue.description)
-                    orientation = newOrientation
+                .onReceive(NotificationCenter.default.publisher(for: UIDevice.orientationDidChangeNotification)) { _ in
+                    guard let scene = UIApplication.shared.windows.first?.windowScene else { return }
+                    self.isPortrait = scene.interfaceOrientation.isPortrait
                 }
                 
             }

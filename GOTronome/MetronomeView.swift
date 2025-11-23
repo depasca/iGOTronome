@@ -8,18 +8,14 @@ import SwiftUI
 
 struct MetronomeView: View {
     @ObservedObject var vm: MetronomeViewModel
-    @State private var orientation = UIDeviceOrientation.unknown
+    @Binding var isPortrait: Bool
     var body: some View {
         HStack{
-            if orientation.isLandscape {
-                MetronomeViewHorizontal(vm: vm)
-            } else {
+            if isPortrait {
                 MetronomeViewVertical(vm: vm)
+            } else {
+                MetronomeViewHorizontal(vm: vm)
             }
-        }
-        .onRotate { newOrientation in
-            print(newOrientation.rawValue.description)
-            orientation = newOrientation
         }
     }
 }
@@ -151,5 +147,5 @@ struct BarRect: View {
 
 #Preview {
     let vm = MetronomeViewModel()
-    MetronomeView(vm: vm)
+    MetronomeView(vm: vm, isPortrait: .constant(false))
 }
