@@ -7,6 +7,24 @@
 
 import SwiftUI
 
+struct DeviceRotationViewModifier: ViewModifier {
+    let action: (UIDeviceOrientation) -> Void
+
+    func body(content: Content) -> some View {
+        content
+            .onAppear()
+            .onReceive(NotificationCenter.default.publisher(for: UIDevice.orientationDidChangeNotification)) { _ in
+                action(UIDevice.current.orientation)
+            }
+    }
+}
+
+extension View {
+    func onRotate(perform action: @escaping (UIDeviceOrientation) -> Void) -> some View {
+        self.modifier(DeviceRotationViewModifier(action: action))
+    }
+}
+
 struct ContentView: View {
     @AppStorage("ts") var ts = "4/4"
     @AppStorage("bpm") var bpm = 100.0
@@ -16,6 +34,7 @@ struct ContentView: View {
     @State var isPlaying: Bool = false
     @State var showAbout: Bool = false
     @StateObject var vm = MetronomeViewModel()
+    @State private var orientation = UIDeviceOrientation.unknown
     
     private let beatsPerMeasure = 4
     private let fontColor:Color = .white
@@ -40,59 +59,10 @@ struct ContentView: View {
             }
             else{
                 VStack(alignment: .center, spacing: 12){
-                    HStack{
-                        Menu {
-                            Button("About") {
-                                showAbout = true
-                            }
-                        } label: {
-                            Label("", systemImage: "line.horizontal.3").tint(.accentColor)
-                        }
-                        Image("Banner")
-                            .resizable()
-                            .scaledToFit()
-                            .border(Color.white, width: 2)
-                            .onTapGesture { tapHandler() }
-                    }
-                    HStack{
-                        Text("Mode").foregroundColor(fontColor)
-                        Picker("Mode", selection: $mode) {
-                            ForEach(MetronomeMode.allCases) { m in
-                                Text(String(describing: m))
-                            }
-                        }.pickerStyle(.segmented).colorScheme(.dark)
-                    }.padding(.top, 40)
-                    HStack{
-                        Text("Time Signature").foregroundColor(fontColor)
-                        Picker(selection: $ts, label: Text("TS:")) {
-                            Text("4/4").tag("4/4").foregroundColor(fontColor)
-                            Text("3/4").tag("3/4").foregroundColor(fontColor)
-                            Text("2/4").tag("2/4").foregroundColor(fontColor)
-                            Text("2/2").tag("2/2").foregroundColor(fontColor)
-                            Text("6/8").tag("6/8").foregroundColor(fontColor)
-                        }.pickerStyle(.segmented).colorScheme(.dark)
-                    }.padding(.top, 20)
-                    HStack{
-                        Text("Beats Per Minute").foregroundColor(fontColor)
-                        Slider(value: $bpm, in: 20...240).tint(.accentColor)
-                        Text("\(Int(bpm))").foregroundColor(fontColor)
-                    }.padding(.top, 20)
-                    if(mode == .barLoop) {
-                        HStack{
-                            Text("Num bars").foregroundColor(fontColor)
-                            Slider(value: $numBars, in: 2...32).tint(.accentColor)
-                            Text("\(Int(numBars))").foregroundColor(fontColor)
-                        }.padding(.top, 20)
-                    }
-                    else{
-                        if(mode == .silenBars) {
-                            HStack{
-                                Text("Num silent bars").foregroundColor(fontColor)
-                                Slider(value: $silentBars, in: 1...10).tint(.accentColor)
-                                Text("\(Int(silentBars))").foregroundColor(fontColor)
-                            }.padding(.top, 20)
-                        }
-                    }
+                    MenuView(showAbout: $showAbout, tapHandler: tapHandler)
+                    SettingsBasicView(mode: $mode, ts: $ts, bpm: $bpm)
+                    SettingsAdvancedView(mode: $mode, silentBars: $silentBars, numBars: $numBars)
+                    
                     VStack{
                         Rectangle().frame(width: .infinity, height: .infinity)
                             .foregroundColor(.clear).contentShape(Rectangle())
@@ -110,6 +80,10 @@ struct ContentView: View {
                 )
                 .sheet(isPresented: $showAbout) {
                     InfoScreen()
+                }
+                .onRotate { newOrientation in
+                    print(newOrientation.rawValue.description)
+                    orientation = newOrientation
                 }
                 
             }

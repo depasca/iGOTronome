@@ -6,25 +6,6 @@
 //
 import SwiftUI
 
-struct DeviceRotationViewModifier: ViewModifier {
-    let action: (UIDeviceOrientation) -> Void
-
-    func body(content: Content) -> some View {
-        content
-//            .onAppear()
-            .onReceive(NotificationCenter.default.publisher(for: UIDevice.orientationDidChangeNotification)) { _ in
-                action(UIDevice.current.orientation)
-            }
-    }
-}
-
-extension View {
-    func onRotate(perform action: @escaping (UIDeviceOrientation) -> Void) -> some View {
-        self.modifier(DeviceRotationViewModifier(action: action))
-    }
-}
-
-
 struct MetronomeView: View {
     @ObservedObject var vm: MetronomeViewModel
     @State private var orientation = UIDeviceOrientation.unknown
@@ -82,7 +63,7 @@ struct MetronomeViewVertical: View {
 
 struct MetronomeViewHorizontal: View {
     @ObservedObject var vm: MetronomeViewModel
-    var containerWidth:CGFloat = UIScreen.main.bounds.width - 32
+    var containerHeight:CGFloat = UIScreen.main.bounds.height - 32
     var body: some View {
         VStack (alignment: .center, spacing: 8){
             HStack(spacing: 4) {
@@ -96,7 +77,7 @@ struct MetronomeViewHorizontal: View {
                         BarRect(num: idx, isActive: idx == vm.currentBar, phase: vm.beatPhase)
                     }
                 }
-                .frame(width: containerWidth * 0.3)
+                .frame(height: containerHeight * 0.3)
             }
         }
         .padding(8)
