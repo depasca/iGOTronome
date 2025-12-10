@@ -1,4 +1,4 @@
-🎵 GOTronome Metronome
+🎵 GOTronome - Metronome and Rythm trainer
 
 A precision metronome designed for real musicians, rehearsals, and skill training — available on Android and iOS.
 
