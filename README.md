@@ -1,4 +1,5 @@
-🎵 GOTronome - Metronome and Rythm trainer
+# 🎵 GOTronome - Metronome and Rhythm trainer
+
 
 (Android version here: https://github.com/depasca/GOTronome)
 
