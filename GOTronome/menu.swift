@@ -13,7 +13,7 @@ struct MenuView: View {
     var body: some View {
         ZStack{
             RoundedRectangle(cornerRadius: 4)
-                .foregroundColor(.accentColor)
+                .foregroundColor(Color(hex: 0xFFFD6500))
                 .border(.white, width: 2)
                 .cornerRadius(4)
             HStack{

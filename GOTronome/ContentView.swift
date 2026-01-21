@@ -16,8 +16,7 @@ struct ContentView: View {
     @State var isPlaying: Bool = false
     @State var showAbout: Bool = false
     @StateObject var vm = MetronomeViewModel()
-    @State private var orientation = UIDeviceOrientation.unknown
-    @State var isPortrait: Bool = false
+    @State var isPortrait: Bool = true
     
     private let beatsPerMeasure = 4
     private let fontColor:Color = .white
@@ -46,8 +45,10 @@ struct ContentView: View {
                         if(self.isPortrait){
                             SettingsBasicView(mode: $mode, ts: $ts, bpm: $bpm)
                             SettingsAdvancedView(mode: $mode, silentBars: $silentBars, numBars: $numBars).padding(.top, 20)
-                            Rectangle().frame(width: .infinity, height: .infinity)
-                                .foregroundColor(.clear).contentShape(Rectangle())
+                            Rectangle()
+                                .foregroundColor(.clear)
+                                .contentShape(Rectangle())
+                                .frame(maxWidth: .infinity, maxHeight: .infinity)
                                 .onTapGesture { tapHandler() }
                         }
                         else{
@@ -55,8 +56,10 @@ struct ContentView: View {
                                 SettingsBasicView(mode: $mode, ts: $ts, bpm: $bpm)
                                 VStack{
                                     SettingsAdvancedView(mode: $mode, silentBars: $silentBars, numBars: $numBars).padding(.leading, 30).padding(.top, 40)
-                                    Rectangle().frame(width: .infinity, height: .infinity)
-                                        .foregroundColor(.clear).contentShape(Rectangle())
+                                    Rectangle()
+                                        .foregroundColor(.clear)
+                                        .contentShape(Rectangle())
+                                        .frame(maxWidth: .infinity, maxHeight: .infinity)
                                         .onTapGesture { tapHandler() }
                                 }
                             }
