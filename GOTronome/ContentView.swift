@@ -13,6 +13,7 @@ struct ContentView: View {
     @AppStorage("mode") var mode: MetronomeMode = .basic
     @AppStorage("silentBars") var silentBars = 1.0
     @AppStorage("numBars") var numBars = 16.0
+    @AppStorage("countIn") var countIn = true
     @State var isPlaying: Bool = false
     @State var showAbout: Bool = false
     @StateObject var vm = MetronomeViewModel()
@@ -25,7 +26,7 @@ struct ContentView: View {
             isPlaying.toggle()
             if(isPlaying){
                 vm.setMode(m: mode)
-                vm.start(ts:ts, bpm:Int(bpm), ns:Int(silentBars), nb:Int(numBars))
+                vm.start(ts:ts, bpm:Int(bpm), ns:Int(silentBars), nb:Int(numBars), countIn: countIn)
             }
             else{
                 vm.stop()
@@ -45,6 +46,7 @@ struct ContentView: View {
                         if(self.isPortrait){
                             SettingsBasicView(mode: $mode, ts: $ts, bpm: $bpm)
                             SettingsAdvancedView(mode: $mode, silentBars: $silentBars, numBars: $numBars).padding(.top, 20)
+                            BeatPatternEditorView(ts: $ts).padding(.top, 20)
                             Rectangle()
                                 .foregroundColor(.clear)
                                 .contentShape(Rectangle())
@@ -79,8 +81,13 @@ struct ContentView: View {
                         InfoScreen()
                     }
                     .onReceive(NotificationCenter.default.publisher(for: UIDevice.orientationDidChangeNotification)) { _ in
-                        guard let scene = UIApplication.shared.windows.first?.windowScene else { return }
-                        self.isPortrait = scene.interfaceOrientation.isPortrait
+                        // Find the active foreground scene and determine orientation
+                        let scenes = UIApplication.shared.connectedScenes
+                        if let windowScene = scenes
+                            .compactMap({ $0 as? UIWindowScene })
+                            .first(where: { $0.activationState == .foregroundActive || $0.activationState == .foregroundInactive }) {
+                            self.isPortrait = windowScene.interfaceOrientation.isPortrait
+                        }
                     }
                 }
         }

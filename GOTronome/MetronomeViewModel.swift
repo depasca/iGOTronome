@@ -39,11 +39,20 @@ final class MetronomeViewModel: ObservableObject {
     @Published private(set) var numSilentBars: Int = 0
     @Published private(set) var mode: MetronomeMode = .basic
     @Published private(set) var silentBarsEnabled: Bool = false
+    @Published private(set) var isCountingIn: Bool = false
     
     private var displayLink: CADisplayLink?
     private var isRunning = false
 
-    func start(ts: String, bpm: Int, ns: Int, nb: Int) {
+    init() {
+        registerAudioObservers()
+    }
+
+    deinit {
+        NotificationCenter.default.removeObserver(self)
+    }
+
+    func start(ts: String, bpm: Int, ns: Int, nb: Int, countIn: Bool) {
         // ensure audio session configured before start
         configureAudioSession()
         startDisplayLink()
@@ -66,7 +75,9 @@ final class MetronomeViewModel: ObservableObject {
             default:
                 beatsPerMeasure = 4
         }
-        metronome_start(UInt32(bpm), UInt32(beatsPerMeasure), UInt32(numSilentBars), UInt32(numBars), silentBarsEnabled)
+        let pattern = AccentPattern.load(for: ts).map(Int32.init)
+        metronome_set_accent_pattern(pattern, Int32(pattern.count))
+        metronome_start(UInt32(bpm), UInt32(beatsPerMeasure), UInt32(numSilentBars), UInt32(numBars), silentBarsEnabled, countIn)
     }
 
     func stop() {
@@ -96,12 +107,14 @@ final class MetronomeViewModel: ObservableObject {
         let phase = Float(metronome_get_current_beat_phase())
         let bar = Int(metronome_get_current_bar())
         let silent = metronome_get_is_silent_bar()
+        let counting = metronome_get_is_counting_in()
         // Update only on changes to minimize UI churn
-        if beat != currentBeat || abs(phase - beatPhase) > 0.001 {
+        if beat != currentBeat || abs(phase - beatPhase) > 0.001 || counting != isCountingIn {
             currentBeat = beat
             beatPhase = phase
             currentBar = bar
             isSilentBar = silent
+            isCountingIn = counting
         }
     }
 
@@ -113,6 +126,46 @@ final class MetronomeViewModel: ObservableObject {
         } catch {
             print("AudioSession error: \(error)")
         }
+    }
+
+    // Recover playback when the output route changes (Bluetooth/headphones
+    // connect or disconnect) or the media server resets, rebuilding the audio
+    // unit on the new route so the click continues in place.
+    private func registerAudioObservers() {
+        let nc = NotificationCenter.default
+        nc.addObserver(self, selector: #selector(handleRouteChange(_:)),
+                       name: AVAudioSession.routeChangeNotification, object: nil)
+        nc.addObserver(self, selector: #selector(handleMediaReset(_:)),
+                       name: AVAudioSession.mediaServicesWereResetNotification, object: nil)
+        nc.addObserver(self, selector: #selector(handleInterruption(_:)),
+                       name: AVAudioSession.interruptionNotification, object: nil)
+    }
+
+    @objc private func handleRouteChange(_ note: Notification) {
+        guard isRunning,
+              let value = note.userInfo?[AVAudioSessionRouteChangeReasonKey] as? UInt,
+              let reason = AVAudioSession.RouteChangeReason(rawValue: value) else { return }
+        switch reason {
+        case .oldDeviceUnavailable, .newDeviceAvailable, .override, .routeConfigurationChange:
+            metronome_restart_audio()
+        default:
+            break
+        }
+    }
+
+    @objc private func handleMediaReset(_ note: Notification) {
+        guard isRunning else { return }
+        configureAudioSession()
+        metronome_restart_audio()
+    }
+
+    @objc private func handleInterruption(_ note: Notification) {
+        guard isRunning,
+              let value = note.userInfo?[AVAudioSessionInterruptionTypeKey] as? UInt,
+              let type = AVAudioSession.InterruptionType(rawValue: value),
+              type == .ended else { return }
+        configureAudioSession()
+        metronome_restart_audio()
     }
     
     public func setMode(m: MetronomeMode) {

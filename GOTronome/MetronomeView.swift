@@ -37,19 +37,25 @@ struct MetronomeViewVertical: View {
     @ObservedObject var vm: MetronomeViewModel
     var containerWidth:CGFloat = UIScreen.main.bounds.width - 32
     var body: some View {
-        HStack (alignment: .center, spacing: 8){
-            VStack(spacing: 4) {
-                ForEach(0..<vm.beatsPerMeasure, id: \.self) { idx in
-                    BeatRect(num: idx, isActive: idx == vm.currentBeat, phase: vm.beatPhase, isSilent: vm.isSilentBar)
-                }
-            }
-            if(vm.mode == MetronomeMode.barLoop){
-                VStack(spacing: 4) {
-                    ForEach(0..<vm.numBars, id: \.self) { idx in
-                        BarRect(num: idx, isActive: idx == vm.currentBar, phase: vm.beatPhase)
+        Group {
+            if vm.isCountingIn {
+                CountInView(count: vm.currentBeat + 1, beatsPerMeasure: vm.beatsPerMeasure)
+            } else {
+                HStack (alignment: .center, spacing: 8){
+                    VStack(spacing: 4) {
+                        ForEach(0..<vm.beatsPerMeasure, id: \.self) { idx in
+                            BeatRect(num: idx, isActive: idx == vm.currentBeat, phase: vm.beatPhase, isSilent: vm.isSilentBar)
+                        }
+                    }
+                    if(vm.mode == MetronomeMode.barLoop){
+                        VStack(spacing: 4) {
+                            ForEach(0..<vm.numBars, id: \.self) { idx in
+                                BarRect(num: idx, isActive: idx == vm.currentBar, phase: vm.beatPhase)
+                            }
+                        }
+                        .frame(width: containerWidth * 0.3)
                     }
                 }
-                .frame(width: containerWidth * 0.3)
             }
         }
         .padding(8)
@@ -61,19 +67,25 @@ struct MetronomeViewHorizontal: View {
     @ObservedObject var vm: MetronomeViewModel
     var containerHeight:CGFloat = UIScreen.main.bounds.height - 32
     var body: some View {
-        VStack (alignment: .center, spacing: 8){
-            HStack(spacing: 4) {
-                ForEach(0..<vm.beatsPerMeasure, id: \.self) { idx in
-                    BeatRect(num: idx, isActive: idx == vm.currentBeat, phase: vm.beatPhase, isSilent: vm.isSilentBar)
-                }
-            }
-            if(vm.mode == MetronomeMode.barLoop){
-                HStack(spacing: 4) {
-                    ForEach(0..<vm.numBars, id: \.self) { idx in
-                        BarRect(num: idx, isActive: idx == vm.currentBar, phase: vm.beatPhase)
+        Group {
+            if vm.isCountingIn {
+                CountInView(count: vm.currentBeat + 1, beatsPerMeasure: vm.beatsPerMeasure)
+            } else {
+                VStack (alignment: .center, spacing: 8){
+                    HStack(spacing: 4) {
+                        ForEach(0..<vm.beatsPerMeasure, id: \.self) { idx in
+                            BeatRect(num: idx, isActive: idx == vm.currentBeat, phase: vm.beatPhase, isSilent: vm.isSilentBar)
+                        }
+                    }
+                    if(vm.mode == MetronomeMode.barLoop){
+                        HStack(spacing: 4) {
+                            ForEach(0..<vm.numBars, id: \.self) { idx in
+                                BarRect(num: idx, isActive: idx == vm.currentBar, phase: vm.beatPhase)
+                            }
+                        }
+                        .frame(height: containerHeight * 0.3)
                     }
                 }
-                .frame(height: containerHeight * 0.3)
             }
         }
         .padding(8)
@@ -114,6 +126,33 @@ struct BeatRect: View {
     }
 }
 
+
+struct CountInView: View {
+    var count: Int              // 1..N
+    var beatsPerMeasure: Int
+
+    var body: some View {
+        VStack(spacing: 16) {
+            Text("COUNT IN")
+                .font(.title)
+                .fontWeight(.semibold)
+                .foregroundColor(.white)
+            Text("\(max(count, 1))")
+                .font(.system(size: 140))
+                .fontWeight(.bold)
+                .foregroundColor(Color(hex: 0xFFFD6500))
+            HStack(spacing: 12) {
+                ForEach(0..<beatsPerMeasure, id: \.self) { i in
+                    Circle()
+                        .fill(i < count ? Color(hex: 0xFFFD6500) : Color(hex: 0xFF282828))
+                        .frame(width: 20, height: 20)
+                }
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(Color.black)
+    }
+}
 
 struct BarRect: View {
     var num: Int
