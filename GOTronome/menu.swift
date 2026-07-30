@@ -6,10 +6,16 @@
 //
 import SwiftUI
 
+/// Our App Store listing; opening it is what "check for updates" does, since the store shows
+/// Update or Open depending on what the user already has.
+private let appStoreListing = URL(string: "https://apps.apple.com/app/id6755876341")
+
 struct MenuView: View {
     @Binding var showAbout: Bool
     var tapHandler: () -> Void
-    
+
+    @Environment(\.openURL) private var openURL
+
     var body: some View {
         ZStack{
             RoundedRectangle(cornerRadius: 4)
@@ -20,6 +26,9 @@ struct MenuView: View {
                 Menu {
                     Button("About") {
                         showAbout = true
+                    }
+                    Button("Check for updates") {
+                        if let appStoreListing { openURL(appStoreListing) }
                     }
                 }
                 label: {
