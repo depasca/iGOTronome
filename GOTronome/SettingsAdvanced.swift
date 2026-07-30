@@ -20,7 +20,7 @@ struct SettingsAdvancedView: View {
                 HStack{
                     Text("Num bars").foregroundColor(fontColor)
                     Slider(value: $numBars, in: 2...32).tint(.accentColor)
-                    Text("\(Int(numBars))").foregroundColor(fontColor)
+                    EditableValueView(value: $numBars, range: 2...32)
                 }
             }
             else{
@@ -28,7 +28,7 @@ struct SettingsAdvancedView: View {
                     HStack{
                         Text("Num silent bars").foregroundColor(fontColor)
                         Slider(value: $silentBars, in: 1...10).tint(.accentColor)
-                        Text("\(Int(silentBars))").foregroundColor(fontColor)
+                        EditableValueView(value: $silentBars, range: 1...10)
                     }
                 }
             }

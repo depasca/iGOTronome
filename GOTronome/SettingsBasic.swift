@@ -35,7 +35,7 @@ struct SettingsBasicView: View {
             HStack{
                 Text("Beats Per Minute").foregroundColor(fontColor)
                 Slider(value: $bpm, in: 20...240).tint(.accentColor)
-                Text("\(Int(bpm))").foregroundColor(fontColor)
+                EditableValueView(value: $bpm, range: 20...240)
             }.padding(.top, 20)
         }
         .background(Color.black)
