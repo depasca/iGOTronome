@@ -11,11 +11,29 @@ import Foundation
 let styleMetronome = "metronome"
 let stylesResourceName = "styles"
 let maxStepsPerBeat = 4
+let maxBassBars = 4
+let bassRest = Int32(METRONOME_BASS_REST)
 
-/// One measure of a drum style: `stepsPerBeat` sub-steps per beat, each a voice bitmask.
+/// Display names of the twelve roots, index = pitch class from C.
+let rootNames: [String] = ["C", "C♯", "D", "E♭", "E", "F", "F♯", "G", "A♭", "A", "B♭", "B"]
+
+/// MIDI note of a root pitch class placed in the bass register, E1 (28) up to E♭2 (39).
+func bassRootMidi(_ pitchClass: Int) -> Int32 {
+    Int32(28 + ((pitchClass - 4) % 12 + 12) % 12)
+}
+
+/// A bass line: `stepsPerBeat` sub-steps per beat over `bars` measures, semitone offsets from the root or `bassRest`.
+struct BassLine: Equatable {
+    let stepsPerBeat: Int
+    let bars: Int
+    let notes: [Int32]
+}
+
+/// One measure of a drum style: `stepsPerBeat` sub-steps per beat, each a voice bitmask, plus an optional bass line.
 struct Groove: Equatable {
     let stepsPerBeat: Int
     let stepVoices: [Int32]
+    var bass: BassLine? = nil
 }
 
 /// Grooves keyed by time signature. The metronome style has none and is valid everywhere.
@@ -90,6 +108,30 @@ private func parseGroove(_ fields: [Substring], line: Int) throws -> (String, Gr
     return (timeSignature, Groove(stepsPerBeat: stepsPerBeat, stepVoices: voices))
 }
 
+private func parseBassLine(_ fields: [Substring], style: Style, line: Int) throws -> (String, BassLine) {
+    guard fields.count >= 3 else {
+        throw StylesParseError(line: line, message: "bass needs <time signature> <steps per beat> <steps>")
+    }
+    let timeSignature = String(fields[0])
+    guard style.grooves[timeSignature] != nil else {
+        throw StylesParseError(line: line, message: "bass line before the \(timeSignature) groove")
+    }
+    guard let stepsPerBeat = Int(fields[1]), (1...maxStepsPerBeat).contains(stepsPerBeat) else {
+        throw StylesParseError(line: line, message: "steps per beat must be 1...\(maxStepsPerBeat)")
+    }
+    let tokens = fields.dropFirst(2).filter { $0 != "|" }
+    let perBar = AccentPattern.beats(for: timeSignature) * stepsPerBeat
+    guard !tokens.isEmpty, tokens.count % perBar == 0, tokens.count / perBar <= maxBassBars else {
+        throw StylesParseError(line: line, message: "expected a multiple of \(perBar) steps up to \(maxBassBars) bars, got \(tokens.count)")
+    }
+    let notes: [Int32] = try tokens.map { token in
+        if token == "." { return bassRest }
+        guard let note = Int32(token) else { throw StylesParseError(line: line, message: "bad bass note '\(token)'") }
+        return note
+    }
+    return (timeSignature, BassLine(stepsPerBeat: stepsPerBeat, bars: tokens.count / perBar, notes: notes))
+}
+
 /// Parses the shared styles file. Throws a `StylesParseError` naming the offending line.
 func parseStyles(_ text: String) throws -> [Style] {
     var styles: [Style] = []
@@ -113,6 +155,14 @@ func parseStyles(_ text: String) throws -> [Style] {
             let (timeSignature, groove) = try parseGroove(Array(fields.dropFirst()), line: line)
             var grooves = current.grooves
             grooves[timeSignature] = groove
+            styles[styles.count - 1] = Style(id: current.id, name: current.name, grooves: grooves)
+        case "bass":
+            guard let current = styles.last else {
+                throw StylesParseError(line: line, message: "bass before any style")
+            }
+            let (timeSignature, bass) = try parseBassLine(Array(fields.dropFirst()), style: current, line: line)
+            var grooves = current.grooves
+            grooves[timeSignature]?.bass = bass
             styles[styles.count - 1] = Style(id: current.id, name: current.name, grooves: grooves)
         default:
             throw StylesParseError(line: line, message: "unknown directive '\(directive)'")

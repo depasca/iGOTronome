@@ -15,6 +15,8 @@ struct ContentView: View {
     @AppStorage("numBars") var numBars = 16.0
     @AppStorage("countIn") var countIn = true
     @AppStorage("style") var style = styleMetronome
+    @AppStorage("bassEnabled") var bassEnabled = false
+    @AppStorage("bassRoot") var bassRoot = 0
     @State var isPlaying: Bool = false
     @State var showAbout: Bool = false
     @StateObject var vm = MetronomeViewModel()
@@ -27,7 +29,8 @@ struct ContentView: View {
             isPlaying.toggle()
             if(isPlaying){
                 vm.setMode(m: mode)
-                vm.start(ts:ts, bpm:Int(bpm), ns:Int(silentBars), nb:Int(numBars), countIn: countIn, styleId: style)
+                vm.start(ts:ts, bpm:Int(bpm), ns:Int(silentBars), nb:Int(numBars), countIn: countIn, styleId: style,
+                         bassEnabled: bassEnabled, bassRoot: bassRoot)
             }
             else{
                 vm.stop()
@@ -36,6 +39,10 @@ struct ContentView: View {
     
     private var effectiveStyle: Style {
         resolveStyle(vm.styles, savedId: style, timeSignature: ts)
+    }
+
+    private var hasBassLine: Bool {
+        effectiveStyle.grooves[ts]?.bass != nil
     }
 
     @ViewBuilder
@@ -52,6 +59,9 @@ struct ContentView: View {
                             SettingsBasicView(mode: $mode, ts: $ts, bpm: $bpm)
                             SettingsAdvancedView(mode: $mode, silentBars: $silentBars, numBars: $numBars).padding(.top, 20)
                             StyleSelectorView(style: $style, timeSignature: ts, styles: vm.styles).padding(.top, 20)
+                            if hasBassLine {
+                                BassControlsView(enabled: $bassEnabled, root: $bassRoot).padding(.top, 8)
+                            }
                             if effectiveStyle.isMetronome {
                                 BeatPatternEditorView(ts: $ts).padding(.top, 20)
                             }
@@ -67,6 +77,9 @@ struct ContentView: View {
                                 VStack{
                                     SettingsAdvancedView(mode: $mode, silentBars: $silentBars, numBars: $numBars).padding(.leading, 30).padding(.top, 40)
                                     StyleSelectorView(style: $style, timeSignature: ts, styles: vm.styles).padding(.leading, 30).padding(.top, 20)
+                                    if hasBassLine {
+                                        BassControlsView(enabled: $bassEnabled, root: $bassRoot).padding(.leading, 30).padding(.top, 8)
+                                    }
                                     Rectangle()
                                         .foregroundColor(.clear)
                                         .contentShape(Rectangle())

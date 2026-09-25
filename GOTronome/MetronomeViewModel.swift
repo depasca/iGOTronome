@@ -56,7 +56,8 @@ final class MetronomeViewModel: ObservableObject {
         NotificationCenter.default.removeObserver(self)
     }
 
-    func start(ts: String, bpm: Int, ns: Int, nb: Int, countIn: Bool, styleId: String = styleMetronome) {
+    func start(ts: String, bpm: Int, ns: Int, nb: Int, countIn: Bool, styleId: String = styleMetronome,
+               bassEnabled: Bool = false, bassRoot: Int = 0) {
         // ensure audio session configured before start
         configureAudioSession()
         startDisplayLink()
@@ -82,6 +83,8 @@ final class MetronomeViewModel: ObservableObject {
         let pattern = AccentPattern.load(for: ts).map(Int32.init)
         metronome_set_accent_pattern(pattern, Int32(pattern.count))
         applyGroove(of: resolveStyle(styles, savedId: styleId, timeSignature: ts), timeSignature: ts)
+        metronome_set_bass_root(bassRootMidi(bassRoot))
+        metronome_set_bass_enabled(bassEnabled)
         metronome_start(UInt32(bpm), UInt32(beatsPerMeasure), UInt32(numSilentBars), UInt32(numBars), silentBarsEnabled, countIn)
     }
 
@@ -90,10 +93,18 @@ final class MetronomeViewModel: ObservableObject {
     private func applyGroove(of style: Style, timeSignature: String) {
         guard let groove = style.grooves[timeSignature], !style.isMetronome else {
             metronome_set_groove(0, nil, 0)
+            metronome_set_bass_line(0, 1, nil, 0)
             return
         }
         groove.stepVoices.withUnsafeBufferPointer { pointer in
             metronome_set_groove(Int32(groove.stepsPerBeat), pointer.baseAddress, Int32(groove.stepVoices.count))
+        }
+        if let bass = groove.bass {
+            bass.notes.withUnsafeBufferPointer { pointer in
+                metronome_set_bass_line(Int32(bass.stepsPerBeat), Int32(bass.bars), pointer.baseAddress, Int32(bass.notes.count))
+            }
+        } else {
+            metronome_set_bass_line(0, 1, nil, 0)
         }
     }
 
