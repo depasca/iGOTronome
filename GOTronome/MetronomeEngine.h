@@ -19,6 +19,9 @@ extern "C" {
 #define METRONOME_MAX_BEATS 16
 #define METRONOME_MAX_STEPS_PER_BEAT 4
 #define METRONOME_MAX_STEPS (METRONOME_MAX_BEATS * METRONOME_MAX_STEPS_PER_BEAT)
+#define METRONOME_MAX_BASS_BARS 4
+#define METRONOME_MAX_BASS_STEPS (METRONOME_MAX_STEPS * METRONOME_MAX_BASS_BARS)
+#define METRONOME_BASS_REST (-1000)
 
 void metronome_start(
                      uint32_t beatsPerMinute,
@@ -41,9 +44,18 @@ void metronome_set_accent_pattern(const int *pattern, int count);
 void metronome_set_groove(int stepsPerBeat, const int *stepVoices, int count);
 
 // Give voice number voiceIndex (bit position of its Voice flag) a recorded
-// one-shot: mono float frames in -1..1 at `rate` Hz. Copies the frames. Must be
-// called while stopped; returns false and does nothing otherwise.
-bool metronome_load_sample(int voiceIndex, const float *frames, int length, int rate);
+// one-shot: mono float frames in -1..1 at `rate` Hz; baseMidiNote is the
+// recording's pitch for pitched voices, 0 otherwise. Copies the frames. Must
+// be called while stopped; returns false and does nothing otherwise.
+bool metronome_load_sample(int voiceIndex, const float *frames, int length, int rate, int baseMidiNote);
+
+// A bass line is stepsPerBeat sub-steps per beat over `bars` measures, each a
+// semitone offset from the root or METRONOME_BASS_REST. It cycles with the
+// measure counter independently of the drum groove and is silent with the
+// Metronome style. Safe to call from the UI thread.
+void metronome_set_bass_line(int stepsPerBeat, int bars, const int *notes, int count);
+void metronome_set_bass_root(int midiNote);
+void metronome_set_bass_enabled(bool enabled);
 
 // Rebuild the output audio unit on the current route without disturbing the
 // transport, so the click keeps its place across a device disconnect.

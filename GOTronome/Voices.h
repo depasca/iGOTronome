@@ -24,9 +24,10 @@ enum Voice {
     VOICE_HAT_PEDAL = 1 << 5,
     VOICE_RIDE = 1 << 6,
     VOICE_CROSS_STICK = 1 << 7,
+    VOICE_BASS = 1 << 8,
 };
 
-#define VOICES_NUM 8
+#define VOICES_NUM 9
 #define VOICES_STRIKE_STATE 200  // floats of per-strike memory available to a voice
 
 static const float kVoicesPi = 3.14159265358979f;
@@ -144,6 +145,23 @@ static inline float voices_ride(float t, int age, double sampleRate, float *stat
     return 0.008f * out + stick;
 }
 
+// Pitched voices play one note at a time: a new strike fades the previous one out.
+static inline int voices_is_monophonic(int voiceIndex) { return (1 << voiceIndex) == VOICE_BASS; }
+
+// Placeholder plucked bass at A1 when no recorded note is loaded; rate is the
+// pitch multiplier, 2^(semitones/12). Harmonics decay faster the higher they are.
+static const float kBassBaseHz = 55.0f;
+
+static inline float voices_bass(float t, int age, float rate) {
+    const float f = kBassBaseHz * rate;
+    const float amps[6] = {1.0f, 0.5f, 0.33f, 0.2f, 0.12f, 0.08f};
+    float body = 0.0f;
+    for (int n = 1; n <= 6; ++n) body += amps[n - 1] * voices_decay(t, 0.9f / n) * sinf(2.0f * kVoicesPi * f * n * t);
+    const float attack = 1.0f - voices_decay(t, 0.003f);
+    const float thump = 0.15f * voices_decay(t, 0.01f) * voices_noise(age, VOICE_BASS);
+    return 0.22f * body * attack + thump;
+}
+
 static inline float voices_cross_stick(float t, int age) {
     const float wood = 0.35f * voices_decay(t, 0.012f) *
                        (sinf(2.0f * kVoicesPi * 1250.0f * t) + 0.5f * sinf(2.0f * kVoicesPi * 2600.0f * t));
@@ -161,6 +179,7 @@ static inline float voices_duration_seconds(int voiceBit) {
         case VOICE_HAT_PEDAL: return 0.12f;
         case VOICE_RIDE: return 2.00f;
         case VOICE_CROSS_STICK: return 0.06f;
+        case VOICE_BASS: return 1.5f;
         default: return 0.0f;
     }
 }
@@ -170,8 +189,9 @@ static inline int voices_duration_samples(int voiceIndex, double sampleRate) {
 }
 
 // Sample `age` of voice number voiceIndex (0..VOICES_NUM-1). `state` is the
-// strike's VOICES_STRIKE_STATE floats, zeroed when it was struck.
-static inline float voices_render(int voiceIndex, int age, double sampleRate, float *state) {
+// strike's VOICES_STRIKE_STATE floats, zeroed when it was struck; `rate` the
+// pitch multiplier for pitched voices.
+static inline float voices_render(int voiceIndex, int age, double sampleRate, float *state, float rate) {
     const float t = (float)(age / sampleRate);
     switch (1 << voiceIndex) {
         case VOICE_BLIP_HI: return voices_blip(age, sampleRate, 1760.0f, 0.5f);
@@ -182,6 +202,7 @@ static inline float voices_render(int voiceIndex, int age, double sampleRate, fl
         case VOICE_HAT_PEDAL: return voices_hat_pedal(t, age);
         case VOICE_RIDE: return voices_ride(t, age, sampleRate, state);
         case VOICE_CROSS_STICK: return voices_cross_stick(t, age);
+        case VOICE_BASS: return voices_bass(t, age, rate);
         default: return 0.0f;
     }
 }

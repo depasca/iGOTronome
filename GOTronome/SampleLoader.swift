@@ -12,9 +12,11 @@ import AVFoundation
 /// Recorded hits are scaled to this peak so they sit with the synth voices instead of over them.
 let samplePeak: Float = 0.6
 
-/// Bundled sample file name (without extension) → engine voice flag.
-let sampleFiles: [(name: String, voice: Int32)] = [
-    ("ride", Int32(VOICE_RIDE.rawValue)),
+/// Bundled sample file name (without extension), engine voice flag and, for pitched
+/// voices, the MIDI note the recording was made at (0 for drums).
+let sampleFiles: [(name: String, voice: Int32, baseMidiNote: Int32)] = [
+    ("ride", Int32(VOICE_RIDE.rawValue), 0),
+    ("bass", Int32(VOICE_BASS.rawValue), 33),
 ]
 
 /// Bit position of a single voice flag, e.g. voiceIndex(of: RIDE) == 6.
@@ -54,11 +56,11 @@ func decodeBundledSample(named name: String) -> (frames: [Float], rate: Int32)? 
 
 /// Loads every bundled sample into the engine. Call before the metronome starts.
 func loadBundledSamples() {
-    for (name, voice) in sampleFiles {
+    for (name, voice, baseMidiNote) in sampleFiles {
         guard let clip = decodeBundledSample(named: name) else { continue }
         let frames = normalized(clip.frames, peak: samplePeak)
         let loaded = frames.withUnsafeBufferPointer { pointer in
-            metronome_load_sample(voiceIndex(of: voice), pointer.baseAddress, Int32(frames.count), clip.rate)
+            metronome_load_sample(voiceIndex(of: voice), pointer.baseAddress, Int32(frames.count), clip.rate, baseMidiNote)
         }
         print("SampleLoader: \(name).wav \(loaded ? "loaded" : "rejected"), \(frames.count) frames at \(clip.rate) Hz")
     }

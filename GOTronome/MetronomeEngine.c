@@ -51,6 +51,18 @@ static StrikePool gStrikes;           // render thread only: every sounding stri
 static SampleBank gSamples;           // filled while stopped, read by the render thread
 static float *gSampleStorage[VOICES_NUM];
 
+// Bass line: written from the UI thread, latched by the render thread at each beat.
+static _Atomic int gBassStepsPerBeat = 0;   // 0 = no bass line
+static _Atomic int gBassBars = 1;
+static _Atomic int gBassNotes[METRONOME_MAX_BASS_STEPS];
+static _Atomic int gBassRoot = 36;          // MIDI note of the root, C2 by default
+static _Atomic bool gBassEnabled = false;
+static bool gBassInitialized = false;
+static int gActiveBassStepsPerBeat = 0;     // render thread only
+static int gActiveBassBars = 1;             // render thread only
+static int gNextBassStep = 0;               // render thread only
+static uint gMeasureCounter = 0;            // render thread only: free-running, unlike gCurrentBar
+
 // Count-in state
 static bool gIsCountingIn = false;
 static uint gCountInBeats = 4;
@@ -110,10 +122,20 @@ void metronome_start(uint32_t beatsPerMinute,
     gCountInBeat = 0;
 
     ensureAccentDefault();
+    if (!gBassInitialized) {
+        for (int i = 0; i < METRONOME_MAX_BASS_STEPS; ++i) {
+            atomic_store_explicit(&gBassNotes[i], METRONOME_BASS_REST, memory_order_relaxed);
+        }
+        gBassInitialized = true;
+    }
     strike_pool_reset(&gStrikes);
     gNextStep = 0;
     gActiveStepsPerBeat = 1;
     gMetronomeStyle = true;
+    gNextBassStep = 0;
+    gActiveBassStepsPerBeat = 0;
+    gActiveBassBars = 1;
+    gMeasureCounter = 0;
     gRunning = true;
 
     setupAudioUnit();
@@ -195,15 +217,36 @@ void metronome_set_groove(int stepsPerBeat, const int *stepVoices, int count) {
     atomic_store_explicit(&gGrooveStepsPerBeat, steps, memory_order_release);
 }
 
-bool metronome_load_sample(int voiceIndex, const float *frames, int length, int rate) {
+bool metronome_load_sample(int voiceIndex, const float *frames, int length, int rate, int baseMidiNote) {
     if (gRunning || voiceIndex < 0 || voiceIndex >= VOICES_NUM || length <= 0 || rate <= 0) return false;
     float *copy = malloc(sizeof(float) * (size_t)length);
     if (copy == NULL) return false;
     memcpy(copy, frames, sizeof(float) * (size_t)length);
     free(gSampleStorage[voiceIndex]);
     gSampleStorage[voiceIndex] = copy;
-    gSamples.voices[voiceIndex] = (Sample){copy, length, (float)rate};
+    gSamples.voices[voiceIndex] = (Sample){copy, length, (float)rate, baseMidiNote};
     return true;
+}
+
+void metronome_set_bass_line(int stepsPerBeat, int bars, const int *notes, int count) {
+    int steps = stepsPerBeat < 0 ? 0 : stepsPerBeat;
+    if (steps > METRONOME_MAX_STEPS_PER_BEAT) steps = METRONOME_MAX_STEPS_PER_BEAT;
+    int measures = bars < 1 ? 1 : bars;
+    if (measures > METRONOME_MAX_BASS_BARS) measures = METRONOME_MAX_BASS_BARS;
+    for (int i = 0; i < METRONOME_MAX_BASS_STEPS; ++i) {
+        atomic_store_explicit(&gBassNotes[i], i < count ? notes[i] : METRONOME_BASS_REST, memory_order_relaxed);
+    }
+    gBassInitialized = true;
+    atomic_store_explicit(&gBassBars, measures, memory_order_relaxed);
+    atomic_store_explicit(&gBassStepsPerBeat, steps, memory_order_release);
+}
+
+void metronome_set_bass_root(int midiNote) {
+    atomic_store_explicit(&gBassRoot, midiNote, memory_order_relaxed);
+}
+
+void metronome_set_bass_enabled(bool enabled) {
+    atomic_store_explicit(&gBassEnabled, enabled, memory_order_relaxed);
 }
 
 void metronome_stop(void) {
@@ -238,6 +281,22 @@ static int blipForLevel(int level) {
 // fractional carry in gBeatPhase keeps the sub-steps drift-free as well.
 static int stepStartSample(int step, double samplesPerBeat, int stepsPerBeat) {
     return (int)floor(step * samplesPerBeat / stepsPerBeat);
+}
+
+static int bassNoteForStep(int beat, int step) {
+    if (beat < 1 || beat > METRONOME_MAX_BEATS || gActiveBassStepsPerBeat == 0) return METRONOME_BASS_REST;
+    const int bar = (int)(gMeasureCounter % (uint)gActiveBassBars);
+    const int index = ((bar * (int)gBeatsPerBar) + (beat - 1)) * gActiveBassStepsPerBeat + step;
+    if (index < 0 || index >= METRONOME_MAX_BASS_STEPS) return METRONOME_BASS_REST;
+    return atomic_load_explicit(&gBassNotes[index], memory_order_relaxed);
+}
+
+// Playback-rate multiplier that transposes the bass sound to midiNote. The
+// synth placeholder sits at A1 (MIDI 33); a recorded note declares its own pitch.
+static float bassRateFor(int midiNote) {
+    const int bassIndex = voices_index(VOICE_BASS);
+    const int base = gSamples.voices[bassIndex].length > 0 ? gSamples.voices[bassIndex].baseMidiNote : 33;
+    return powf(2.0f, (float)(midiNote - base) / 12.0f);
 }
 
 static int voicesForStep(int beat, int step) {
@@ -286,6 +345,7 @@ static OSStatus RenderCallback(void *inRefCon,
                 gCurrentBeat += 1;
                 if (gCurrentBeat > gBeatsPerBar) {
                     gCurrentBeat = 1;
+                    gMeasureCounter += 1;
                     if (++gCurrentBar >= gNumBars)
                         gCurrentBar = 0;
                     if (gSilentBarsEnabled) {
@@ -307,14 +367,29 @@ static OSStatus RenderCallback(void *inRefCon,
             gMetronomeStyle = gIsCountingIn || grooveSteps == 0;
             gActiveStepsPerBeat = gMetronomeStyle ? 1 : grooveSteps;
             gNextStep = 0;
+            const bool bassOn = atomic_load_explicit(&gBassEnabled, memory_order_relaxed) && !gMetronomeStyle;
+            gActiveBassStepsPerBeat = bassOn ? atomic_load_explicit(&gBassStepsPerBeat, memory_order_acquire) : 0;
+            const int bars = atomic_load_explicit(&gBassBars, memory_order_relaxed);
+            gActiveBassBars = bars < 1 ? 1 : bars;
+            gNextBassStep = 0;
         }
 
         if (gNextStep < gActiveStepsPerBeat &&
             gSamplesSinceBeat >= stepStartSample(gNextStep, samplesPerBeat, gActiveStepsPerBeat)) {
             if (!gIsSilent) {
-                strike_pool_strike(&gStrikes, voicesForStep((int)gCurrentBeat, gNextStep));
+                strike_pool_strike(&gStrikes, voicesForStep((int)gCurrentBeat, gNextStep), 1.0f);
             }
             gNextStep++;
+        }
+
+        if (gNextBassStep < gActiveBassStepsPerBeat &&
+            gSamplesSinceBeat >= stepStartSample(gNextBassStep, samplesPerBeat, gActiveBassStepsPerBeat)) {
+            const int note = bassNoteForStep((int)gCurrentBeat, gNextBassStep);
+            if (note != METRONOME_BASS_REST && !gIsSilent) {
+                const int midi = atomic_load_explicit(&gBassRoot, memory_order_relaxed) + note;
+                strike_pool_strike(&gStrikes, VOICE_BASS, bassRateFor(midi));
+            }
+            gNextBassStep++;
         }
 
         out[i] = strike_pool_render(&gStrikes, kSampleRate, &gSamples);

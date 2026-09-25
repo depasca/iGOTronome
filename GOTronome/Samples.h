@@ -16,6 +16,7 @@ typedef struct {
     const float *data;  // mono, full scale +-1
     int length;         // frames; 0 = no sample, use the synth voice
     float rate;         // frames per second the sample was recorded at
+    int baseMidiNote;   // pitch of the recording for pitched voices, 0 = unpitched
 } Sample;
 
 typedef struct {
@@ -26,13 +27,14 @@ static inline int samples_has(const SampleBank *bank, int voiceIndex) {
     return bank->voices[voiceIndex].length > 0;
 }
 
-static inline int samples_duration_samples(const Sample *s, double sampleRate) {
-    return (int)(s->length * sampleRate / s->rate);
+// pitch multiplies the playback rate: 2^(semitones/12) transposes the note.
+static inline int samples_duration_samples(const Sample *s, double sampleRate, float pitch) {
+    return (int)(s->length * sampleRate / (s->rate * pitch));
 }
 
 // Linear-interpolated playback of s, resampled from its own rate to sampleRate.
-static inline float samples_play(const Sample *s, int age, double sampleRate) {
-    const double pos = age * (s->rate / sampleRate);
+static inline float samples_play(const Sample *s, int age, double sampleRate, float pitch) {
+    const double pos = age * (s->rate * pitch / sampleRate);
     const int i = (int)pos;
     if (i + 1 >= s->length) return i < s->length ? s->data[i] : 0.0f;
     const float frac = (float)(pos - i);
