@@ -45,6 +45,7 @@ final class MetronomeViewModel: ObservableObject {
     private var isRunning = false
 
     init() {
+        loadBundledSamples()
         registerAudioObservers()
     }
 

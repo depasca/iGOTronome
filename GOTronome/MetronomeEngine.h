@@ -10,6 +10,7 @@
 
 #include <stdint.h>
 #include <stdbool.h>
+#include "Voices.h"
 
 #ifdef __cplusplus
 extern "C" {
