@@ -6,12 +6,14 @@
 //
 
 #include "MetronomeEngine.h"
+#include "StrikePool.h"
 
 #include <AudioToolbox/AudioToolbox.h>
 #include <math.h>
 #include <stdatomic.h>
 #include <stdbool.h>
 #include <stdlib.h>
+#include <string.h>
 
 static AudioUnit gAudioUnit = NULL;
 static bool gRunning = false;
@@ -38,6 +40,17 @@ static void ensureAccentDefault(void) {
     gAccentInitialized = true;
 }
 
+// Groove: written from the UI thread, latched by the render thread at each beat.
+// Steps per beat 0 = Metronome style (one blip per beat from the accent pattern).
+static _Atomic int gGrooveStepsPerBeat = 0;
+static _Atomic int gGrooveStepVoices[METRONOME_MAX_STEPS];
+static int gActiveStepsPerBeat = 1;   // render thread only: sub-steps in the current beat
+static int gNextStep = 0;             // render thread only: next sub-step to strike
+static bool gMetronomeStyle = true;   // render thread only: latched at each beat
+static StrikePool gStrikes;           // render thread only: every sounding strike
+static SampleBank gSamples;           // filled while stopped, read by the render thread
+static float *gSampleStorage[VOICES_NUM];
+
 // Count-in state
 static bool gIsCountingIn = false;
 static uint gCountInBeats = 4;
@@ -53,13 +66,8 @@ static bool gIsSilent = false;
 static double gBeatPhase = 0.0;     // samples until the next beat (fractional)
 static int gSamplesSinceBeat = 0;   // samples since the last beat, for the click
 
-// Sound parameters
+// Sound parameters. The blip frequencies and volumes live in Voices.h.
 static const float kSampleRate = 48000.0f;
-static const float kClickDuration = 0.01f * kSampleRate;
-static const float kNormalFreq = 880.0f;
-static const float kAccentFreq = 1760.0f;
-static const float  kAccentVol = 0.5f;
-static const float  kNormalVol = 0.30f;
 
 // Forward declaration
 static OSStatus RenderCallback(void *inRefCon,
@@ -102,6 +110,10 @@ void metronome_start(uint32_t beatsPerMinute,
     gCountInBeat = 0;
 
     ensureAccentDefault();
+    strike_pool_reset(&gStrikes);
+    gNextStep = 0;
+    gActiveStepsPerBeat = 1;
+    gMetronomeStyle = true;
     gRunning = true;
 
     setupAudioUnit();
@@ -172,6 +184,28 @@ void metronome_set_accent_pattern(const int *pattern, int count) {
     gAccentInitialized = true;
 }
 
+void metronome_set_groove(int stepsPerBeat, const int *stepVoices, int count) {
+    int steps = stepsPerBeat < 0 ? 0 : stepsPerBeat;
+    if (steps > METRONOME_MAX_STEPS_PER_BEAT) steps = METRONOME_MAX_STEPS_PER_BEAT;
+    for (int i = 0; i < METRONOME_MAX_STEPS; ++i) {
+        atomic_store_explicit(&gGrooveStepVoices[i], i < count ? stepVoices[i] : 0, memory_order_relaxed);
+    }
+    // Release after the steps so the render thread never pairs a new step count
+    // with stale step voices.
+    atomic_store_explicit(&gGrooveStepsPerBeat, steps, memory_order_release);
+}
+
+bool metronome_load_sample(int voiceIndex, const float *frames, int length, int rate) {
+    if (gRunning || voiceIndex < 0 || voiceIndex >= VOICES_NUM || length <= 0 || rate <= 0) return false;
+    float *copy = malloc(sizeof(float) * (size_t)length);
+    if (copy == NULL) return false;
+    memcpy(copy, frames, sizeof(float) * (size_t)length);
+    free(gSampleStorage[voiceIndex]);
+    gSampleStorage[voiceIndex] = copy;
+    gSamples.voices[voiceIndex] = (Sample){copy, length, (float)rate};
+    return true;
+}
+
 void metronome_stop(void) {
     if (!gRunning) return;
 
@@ -191,15 +225,32 @@ void metronome_stop(void) {
 }
 
 
-float envelope(float t, float duration) {
-    float attack = 0.002f;
-    float release = 0.008f;
-    if (t < attack) return t / attack;
-    else if (t > duration - release) return (duration - t) / release;
-    else return 1.0f;
+#pragma mark - Render Callback
+
+// Per-beat level (2 = accent, 1 = normal, 0 = mute) as a voice mask.
+static int blipForLevel(int level) {
+    if (level == 2) return VOICE_BLIP_HI;
+    if (level == 1) return VOICE_BLIP_LO;
+    return 0;
 }
 
-#pragma mark - Render Callback
+// Sample offset of a sub-step inside a beat. Relative to the beat, so the
+// fractional carry in gBeatPhase keeps the sub-steps drift-free as well.
+static int stepStartSample(int step, double samplesPerBeat, int stepsPerBeat) {
+    return (int)floor(step * samplesPerBeat / stepsPerBeat);
+}
+
+static int voicesForStep(int beat, int step) {
+    if (beat < 1 || beat > METRONOME_MAX_BEATS) return 0;
+    if (gIsCountingIn) {
+        // The count-in is a steady accent-on-1 click whatever the style.
+        return blipForLevel(beat == 1 ? 2 : 1);
+    }
+    if (gMetronomeStyle) {
+        return blipForLevel(atomic_load_explicit(&gAccentPattern[beat - 1], memory_order_relaxed));
+    }
+    return atomic_load_explicit(&gGrooveStepVoices[(beat - 1) * gActiveStepsPerBeat + step], memory_order_relaxed);
+}
 
 static OSStatus RenderCallback(void *inRefCon,
                                AudioUnitRenderActionFlags *ioActionFlags,
@@ -212,8 +263,6 @@ static OSStatus RenderCallback(void *inRefCon,
     double samplesPerBeat = kSampleRate * (60.0 / gBeatsPerMinute);
 
     for (UInt32 i = 0; i < inNumberFrames; ++i) {
-        float sample = 0.0f;
-
         // Fire a beat when a full (fractional) beat period has elapsed. The
         // remainder carries into gBeatPhase, so the tempo never drifts.
         if (gBeatPhase <= 0.0) {
@@ -251,30 +300,24 @@ static OSStatus RenderCallback(void *inRefCon,
                     }
                 }
             }
+
+            // Latch the groove for this beat so a live change from the UI
+            // thread cannot move the step grid mid-beat.
+            const int grooveSteps = atomic_load_explicit(&gGrooveStepsPerBeat, memory_order_acquire);
+            gMetronomeStyle = gIsCountingIn || grooveSteps == 0;
+            gActiveStepsPerBeat = gMetronomeStyle ? 1 : grooveSteps;
+            gNextStep = 0;
         }
 
-        // Generate the click at the start of the beat.
-        if (!gIsSilent && gSamplesSinceBeat < (int)kClickDuration) {
-            // Per-beat level: 2 = accent, 1 = normal, 0 = mute. The count-in
-            // keeps a steady accent-on-1 and ignores the pattern.
-            int level;
-            if (gIsCountingIn) {
-                level = (gCurrentBeat == 1) ? 2 : 1;
-            } else if (gCurrentBeat >= 1 && gCurrentBeat <= METRONOME_MAX_BEATS) {
-                level = atomic_load_explicit(&gAccentPattern[gCurrentBeat - 1],
-                                             memory_order_relaxed);
-            } else {
-                level = 1;
+        if (gNextStep < gActiveStepsPerBeat &&
+            gSamplesSinceBeat >= stepStartSample(gNextStep, samplesPerBeat, gActiveStepsPerBeat)) {
+            if (!gIsSilent) {
+                strike_pool_strike(&gStrikes, voicesForStep((int)gCurrentBeat, gNextStep));
             }
-            if (level != 0) {
-                double freq = (level == 2) ? kAccentFreq : kNormalFreq;
-                double vol  = (level == 2) ? kAccentVol  : kNormalVol;
-                float t = gSamplesSinceBeat / kSampleRate;
-                float env = envelope(t, kClickDuration / kSampleRate);
-                sample = vol * env * sinf(2.0f * M_PI * freq * t);
-            }
+            gNextStep++;
         }
-        out[i] = sample;
+
+        out[i] = strike_pool_render(&gStrikes, kSampleRate, &gSamples);
 
         // Expose progress through the current beat (0 at the click, ->1 before
         // the next) so the visual pulse can shrink smoothly.
