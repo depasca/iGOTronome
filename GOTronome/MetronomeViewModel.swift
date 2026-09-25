@@ -40,7 +40,10 @@ final class MetronomeViewModel: ObservableObject {
     @Published private(set) var mode: MetronomeMode = .basic
     @Published private(set) var silentBarsEnabled: Bool = false
     @Published private(set) var isCountingIn: Bool = false
-    
+
+    /// The bundled drum styles; the first is always the metronome.
+    let styles: [Style] = loadBundledStyles()
+
     private var displayLink: CADisplayLink?
     private var isRunning = false
 
@@ -53,7 +56,7 @@ final class MetronomeViewModel: ObservableObject {
         NotificationCenter.default.removeObserver(self)
     }
 
-    func start(ts: String, bpm: Int, ns: Int, nb: Int, countIn: Bool) {
+    func start(ts: String, bpm: Int, ns: Int, nb: Int, countIn: Bool, styleId: String = styleMetronome) {
         // ensure audio session configured before start
         configureAudioSession()
         startDisplayLink()
@@ -78,7 +81,20 @@ final class MetronomeViewModel: ObservableObject {
         }
         let pattern = AccentPattern.load(for: ts).map(Int32.init)
         metronome_set_accent_pattern(pattern, Int32(pattern.count))
+        applyGroove(of: resolveStyle(styles, savedId: styleId, timeSignature: ts), timeSignature: ts)
         metronome_start(UInt32(bpm), UInt32(beatsPerMeasure), UInt32(numSilentBars), UInt32(numBars), silentBarsEnabled, countIn)
+    }
+
+    // Hand the style's groove for this meter to the engine; the metronome style
+    // clears it so the accent pattern drives one blip per beat.
+    private func applyGroove(of style: Style, timeSignature: String) {
+        guard let groove = style.grooves[timeSignature], !style.isMetronome else {
+            metronome_set_groove(0, nil, 0)
+            return
+        }
+        groove.stepVoices.withUnsafeBufferPointer { pointer in
+            metronome_set_groove(Int32(groove.stepsPerBeat), pointer.baseAddress, Int32(groove.stepVoices.count))
+        }
     }
 
     func stop() {

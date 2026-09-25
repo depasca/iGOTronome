@@ -14,6 +14,7 @@ struct ContentView: View {
     @AppStorage("silentBars") var silentBars = 1.0
     @AppStorage("numBars") var numBars = 16.0
     @AppStorage("countIn") var countIn = true
+    @AppStorage("style") var style = styleMetronome
     @State var isPlaying: Bool = false
     @State var showAbout: Bool = false
     @StateObject var vm = MetronomeViewModel()
@@ -26,13 +27,17 @@ struct ContentView: View {
             isPlaying.toggle()
             if(isPlaying){
                 vm.setMode(m: mode)
-                vm.start(ts:ts, bpm:Int(bpm), ns:Int(silentBars), nb:Int(numBars), countIn: countIn)
+                vm.start(ts:ts, bpm:Int(bpm), ns:Int(silentBars), nb:Int(numBars), countIn: countIn, styleId: style)
             }
             else{
                 vm.stop()
             }
     }
     
+    private var effectiveStyle: Style {
+        resolveStyle(vm.styles, savedId: style, timeSignature: ts)
+    }
+
     @ViewBuilder
     var body: some View {
             if(isPlaying)
@@ -46,7 +51,10 @@ struct ContentView: View {
                         if(self.isPortrait){
                             SettingsBasicView(mode: $mode, ts: $ts, bpm: $bpm)
                             SettingsAdvancedView(mode: $mode, silentBars: $silentBars, numBars: $numBars).padding(.top, 20)
-                            BeatPatternEditorView(ts: $ts).padding(.top, 20)
+                            StyleSelectorView(style: $style, timeSignature: ts, styles: vm.styles).padding(.top, 20)
+                            if effectiveStyle.isMetronome {
+                                BeatPatternEditorView(ts: $ts).padding(.top, 20)
+                            }
                             Rectangle()
                                 .foregroundColor(.clear)
                                 .contentShape(Rectangle())
@@ -58,6 +66,7 @@ struct ContentView: View {
                                 SettingsBasicView(mode: $mode, ts: $ts, bpm: $bpm)
                                 VStack{
                                     SettingsAdvancedView(mode: $mode, silentBars: $silentBars, numBars: $numBars).padding(.leading, 30).padding(.top, 40)
+                                    StyleSelectorView(style: $style, timeSignature: ts, styles: vm.styles).padding(.leading, 30).padding(.top, 20)
                                     Rectangle()
                                         .foregroundColor(.clear)
                                         .contentShape(Rectangle())
