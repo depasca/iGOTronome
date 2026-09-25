@@ -8,6 +8,8 @@
 
 import Foundation
 
+let timeSignatures = ["4/4", "3/4", "2/4", "2/2", "6/8"]
+
 enum BeatLevel {
     static let mute = 0
     static let normal = 1
