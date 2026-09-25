@@ -19,7 +19,7 @@ struct StylesTests {
         let styles = try bundled()
         let expected: [String: Set<String>] = [
             "metronome": [], "rock": ["4/4", "6/8"], "swing": ["4/4"], "shuffle": ["4/4"],
-            "waltz": ["3/4"], "bossa": ["4/4"], "march": ["2/4", "2/2"],
+            "waltz": ["3/4"], "bossa": ["4/4"], "samba": ["2/4", "4/4"], "march": ["2/4", "2/2"],
         ]
         #expect(Dictionary(uniqueKeysWithValues: styles.map { ($0.id, Set($0.grooves.keys)) }) == expected)
         for style in styles {
