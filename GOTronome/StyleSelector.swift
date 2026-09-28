@@ -22,9 +22,7 @@ struct StyleSelectorView: View {
     }
 
     var body: some View {
-        HStack {
-            Text("Style").foregroundColor(.white)
-            Spacer()
+        SettingRow(label: "Style") {
             Picker("Style", selection: selection) {
                 ForEach(stylesFor(styles, timeSignature: timeSignature)) { option in
                     Text(option.name).tag(option.id)

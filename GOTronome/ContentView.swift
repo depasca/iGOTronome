@@ -65,13 +65,13 @@ struct ContentView: View {
                         MenuView(showAbout: $showAbout, tapHandler: tapHandler)
                         if(self.isPortrait){
                             SettingsBasicView(mode: $mode, ts: $ts, bpm: $bpm)
-                            SettingsAdvancedView(mode: $mode, silentBars: $silentBars, numBars: $numBars).padding(.top, 20)
-                            StyleSelectorView(style: $style, timeSignature: ts, styles: vm.styles).padding(.top, 20)
+                            SettingsAdvancedView(mode: $mode, silentBars: $silentBars, numBars: $numBars)
+                            StyleSelectorView(style: $style, timeSignature: ts, styles: vm.styles)
                             if hasBassLine {
-                                BassControlsView(enabled: $bassEnabled, root: $bassRoot).padding(.top, 8)
+                                BassControlsView(enabled: $bassEnabled, root: $bassRoot)
                             }
                             if effectiveStyle.isMetronome {
-                                BeatPatternEditorView(ts: $ts).padding(.top, 20)
+                                BeatPatternEditorView(ts: $ts)
                             }
                             startArea
                         }

@@ -23,24 +23,19 @@ struct BeatPatternEditorView: View {
 
     var body: some View {
         VStack(spacing: 8) {
-            Text("Accents")
-                .font(.headline)
-                .foregroundColor(.white)
-            Text("Tap a beat to cycle its sound")
-                .font(.caption)
-                .foregroundColor(.gray)
+            SettingRow(label: "Accents") {
+                HStack(spacing: 12) {
+                    LegendItem(level: BeatLevel.accent, label: "Accent", accentColor: accentColor)
+                    LegendItem(level: BeatLevel.normal, label: "Normal", accentColor: accentColor)
+                    LegendItem(level: BeatLevel.mute, label: "Mute", accentColor: accentColor)
+                }
+            }
             HStack(spacing: 8) {
                 ForEach(Array(pattern.enumerated()), id: \.offset) { index, level in
                     BeatCell(beatNumber: index + 1, level: level, accentColor: accentColor)
                         .onTapGesture { cycle(index) }
                 }
             }
-            HStack(spacing: 16) {
-                LegendItem(level: BeatLevel.accent, label: "Accent", accentColor: accentColor)
-                LegendItem(level: BeatLevel.normal, label: "Normal", accentColor: accentColor)
-                LegendItem(level: BeatLevel.mute, label: "Mute", accentColor: accentColor)
-            }
-            .padding(.top, 4)
         }
         .frame(maxWidth: .infinity)
         .onAppear { pattern = AccentPattern.load(for: ts) }

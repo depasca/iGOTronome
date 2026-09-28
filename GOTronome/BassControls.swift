@@ -12,12 +12,7 @@ struct BassControlsView: View {
     @Binding var root: Int
 
     var body: some View {
-        HStack {
-            Text("Bass").foregroundColor(.white)
-            Toggle("Bass", isOn: $enabled)
-                .labelsHidden()
-                .tint(.accentColor)
-            Spacer()
+        SettingRow(label: "Bass") {
             Picker("Root", selection: $root) {
                 ForEach(Array(rootNames.enumerated()), id: \.offset) { pitchClass, name in
                     Text("Root \(name)").tag(pitchClass)
@@ -27,7 +22,11 @@ struct BassControlsView: View {
             .colorScheme(.dark)
             .accentColor(.white)
             .disabled(!enabled)
-            .opacity(enabled ? 1 : 0.5)
+            Toggle("Bass", isOn: $enabled)
+                .labelsHidden()
+                .tint(.accentColor)
+                // The system off track is a translucent fill that vanishes on black.
+                .background(Capsule().fill(Color.white.opacity(0.35)))
         }
     }
 }

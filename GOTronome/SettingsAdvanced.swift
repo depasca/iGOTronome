@@ -14,23 +14,11 @@ struct SettingsAdvancedView: View {
     @Binding var silentBars: Double
     @Binding var numBars: Double
     var body: some View {
-        let fontColor: Color = .white
         VStack {
-            if(mode == .barLoop) {
-                HStack{
-                    Text("Num bars").foregroundColor(fontColor)
-                    Slider(value: $numBars, in: 2...32).tint(.accentColor)
-                    EditableValueView(value: $numBars, range: 2...32)
-                }
-            }
-            else{
-                if(mode == .silenBars) {
-                    HStack{
-                        Text("Num silent bars").foregroundColor(fontColor)
-                        Slider(value: $silentBars, in: 1...10).tint(.accentColor)
-                        EditableValueView(value: $silentBars, range: 1...10)
-                    }
-                }
+            if mode == .barLoop {
+                SliderSettingRow(label: "Num bars", value: $numBars, range: 2...32)
+            } else if mode == .silenBars {
+                SliderSettingRow(label: "Num silent bars", value: $silentBars, range: 1...10)
             }
         }
         .background(Color.black)
