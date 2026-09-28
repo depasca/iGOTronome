@@ -9,6 +9,9 @@
 
 import SwiftUI
 
+// With one audible bar, longer gaps leave too little click to re-lock the tempo.
+let maxSilentBars = 8.0
+
 struct SettingsAdvancedView: View {
     @Binding var mode: MetronomeMode
     @Binding var silentBars: Double
@@ -18,10 +21,12 @@ struct SettingsAdvancedView: View {
             if mode == .barLoop {
                 SliderSettingRow(label: "Loop bars", value: $numBars, range: 2...32)
             } else if mode == .silenBars {
-                SliderSettingRow(label: "Silent bars", value: $silentBars, range: 1...10)
+                SliderSettingRow(label: "Silent bars", value: $silentBars, range: 1...maxSilentBars)
             }
         }
         .background(Color.black)
+        // Earlier versions allowed up to 10.
+        .onAppear { silentBars = min(silentBars, maxSilentBars) }
     }
 }
 
