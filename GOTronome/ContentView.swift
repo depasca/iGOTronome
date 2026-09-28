@@ -45,14 +45,12 @@ struct ContentView: View {
         effectiveStyle.grooves[ts]?.bass != nil
     }
 
-    /// Fills whatever space the settings leave, so the empty area itself is the start target.
+    /// Fills whatever space the settings leave, so the empty area reads as the start target.
     private var startArea: some View {
         Text("Tap to start")
             .font(.title2)
             .foregroundColor(fontColor)
             .frame(maxWidth: .infinity, minHeight: 44, maxHeight: .infinity)
-            .contentShape(Rectangle())
-            .onTapGesture { tapHandler() }
     }
 
     @ViewBuilder
@@ -94,6 +92,8 @@ struct ContentView: View {
                     }
                     .padding()
                     .contentShape(Rectangle())
+                    // Controls claim their own taps; any other tap on the settings starts playback, as on Android.
+                    .onTapGesture { tapHandler() }
                     .background(
                         Image("Background")
                             .frame(width: UIScreen.main.bounds.width, height: UIScreen.main.bounds.height)
