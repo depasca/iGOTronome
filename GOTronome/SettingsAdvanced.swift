@@ -16,9 +16,9 @@ struct SettingsAdvancedView: View {
     var body: some View {
         VStack {
             if mode == .barLoop {
-                SliderSettingRow(label: "Num bars", value: $numBars, range: 2...32)
+                SliderSettingRow(label: "Loop bars", value: $numBars, range: 2...32)
             } else if mode == .silenBars {
-                SliderSettingRow(label: "Num silent bars", value: $silentBars, range: 1...10)
+                SliderSettingRow(label: "Silent bars", value: $silentBars, range: 1...10)
             }
         }
         .background(Color.black)

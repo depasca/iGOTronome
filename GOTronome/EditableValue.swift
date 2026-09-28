@@ -88,7 +88,7 @@ struct EditableValueView: View {
 
 #Preview {
     HStack {
-        Text("Beats Per Minute").foregroundColor(.white)
+        Text("BPM").foregroundColor(.white)
         Slider(value: .constant(120), in: 20...240).tint(.accentColor)
         EditableValueView(value: .constant(120), range: 20...240)
     }

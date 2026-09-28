@@ -91,7 +91,7 @@ final class EditableValueUITests: XCTestCase {
         let app = XCUIApplication()
         app.launch()
 
-        app.buttons["Silent Bars"].tap()
+        app.buttons["Silent bars"].tap()
         XCTAssertEqual(app.textFields.count, 2, "expected BPM plus silent bars")
 
         app.textFields.element(boundBy: 0).tap()

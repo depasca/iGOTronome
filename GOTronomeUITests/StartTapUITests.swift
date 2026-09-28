@@ -42,9 +42,9 @@ final class StartTapUITests: XCTestCase {
 
         let width = app.windows.firstMatch.frame.width
         let style = app.staticTexts["Style"].firstMatch.frame
-        let bpm = app.staticTexts["Beats Per Minute"].firstMatch.frame
+        let bpm = app.staticTexts["BPM"].firstMatch.frame
         let mode = app.staticTexts["Mode"].firstMatch.frame
-        let timeSignature = app.staticTexts["Time Signature"].firstMatch.frame
+        let timeSignature = app.staticTexts["Time"].firstMatch.frame
 
         let spots: [(String, CGPoint)] = [
             ("Style label", CGPoint(x: style.midX, y: style.midY)),

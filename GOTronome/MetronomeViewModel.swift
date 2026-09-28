@@ -20,9 +20,9 @@ enum MetronomeMode : String, CaseIterable, Identifiable, CustomStringConvertible
         case .basic:
             return "Basic"
         case .barLoop:
-            return "Bar Loop"
+            return "Bar loop"
         case .silenBars:
-            return "Silent Bars"
+            return "Silent bars"
         }
     }
 }

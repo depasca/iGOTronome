@@ -20,14 +20,14 @@ struct SettingsBasicView: View {
                     }
                 }.pickerStyle(.segmented).colorScheme(.dark)
             }
-            SettingRow(label: "Time Signature") {
-                Picker(selection: $ts, label: Text("Time Signature")) {
+            SettingRow(label: "Time") {
+                Picker(selection: $ts, label: Text("Time")) {
                     ForEach(["4/4", "3/4", "2/4", "2/2", "6/8"], id: \.self) { option in
                         Text(option).tag(option)
                     }
                 }.pickerStyle(.segmented).colorScheme(.dark)
             }
-            SliderSettingRow(label: "Beats Per Minute", value: $bpm, range: 20...240)
+            SliderSettingRow(label: "BPM", value: $bpm, range: 20...240)
         }
         .padding(.top, 20)
         .background(Color.black)
