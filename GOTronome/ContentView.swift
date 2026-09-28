@@ -45,6 +45,16 @@ struct ContentView: View {
         effectiveStyle.grooves[ts]?.bass != nil
     }
 
+    /// Fills whatever space the settings leave, so the empty area itself is the start target.
+    private var startArea: some View {
+        Text("Tap to start")
+            .font(.title2)
+            .foregroundColor(fontColor)
+            .frame(maxWidth: .infinity, minHeight: 44, maxHeight: .infinity)
+            .contentShape(Rectangle())
+            .onTapGesture { tapHandler() }
+    }
+
     @ViewBuilder
     var body: some View {
             if(isPlaying)
@@ -65,11 +75,7 @@ struct ContentView: View {
                             if effectiveStyle.isMetronome {
                                 BeatPatternEditorView(ts: $ts).padding(.top, 20)
                             }
-                            Rectangle()
-                                .foregroundColor(.clear)
-                                .contentShape(Rectangle())
-                                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                                .onTapGesture { tapHandler() }
+                            startArea
                         }
                         else{
                             HStack(alignment: .top){
@@ -80,16 +86,11 @@ struct ContentView: View {
                                     if hasBassLine {
                                         BassControlsView(enabled: $bassEnabled, root: $bassRoot).padding(.leading, 30).padding(.top, 8)
                                     }
-                                    Rectangle()
-                                        .foregroundColor(.clear)
-                                        .contentShape(Rectangle())
-                                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-                                        .onTapGesture { tapHandler() }
+                                    startArea
                                 }
                             }
                             
                         }
-                    Text("Tap anywhere to start/stop").foregroundColor(.white)
                     }
                     .padding()
                     .contentShape(Rectangle())
